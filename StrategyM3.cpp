@@ -320,7 +320,7 @@ bool StrategyM3::IsEfficientTopo() const {
   return true;
 }
 bool StrategyM3::IsDistinguishableTopo() const {
-  const StrategyM3 allc("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
+  const StrategyM3 allc = StrategyM3::ALLC();
   if (actions[0] != C) { return true; }
 
   auto UpdateGn = [](DirectedGraph &gn) {

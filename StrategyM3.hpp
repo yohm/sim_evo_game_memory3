@@ -35,7 +35,7 @@ class StateM3 {
   Action a_3, a_2, a_1, b_3, b_2, b_1;
 
   bool operator==(const StateM3 &rhs) const {
-    return (a_3 == rhs.a_3 && a_2 == rhs.a_2 && a_1 == rhs.a_1 && b_3 == rhs.b_3 && b_2 == rhs.b_2 && b_1 == rhs.b_1);
+    return a_3 == rhs.a_3 && a_2 == rhs.a_2 && a_1 == rhs.a_1 && b_3 == rhs.b_3 && b_2 == rhs.b_2 && b_1 == rhs.b_1;
   }
   friend std::ostream &operator<<(std::ostream &os, const StateM3 &s) {
     os << s.a_3 << s.a_2 << s.a_1 << s.b_3 << s.b_2 << s.b_1;
@@ -126,7 +126,7 @@ class StrategyM3 {
   bool IsEfficient(double e = 0.00001, double th = 0.95) const { return (StationaryState(e)[0] > th); }
   bool IsEfficientTopo() const; // check efficiency using ITG
   bool IsDistinguishable(double e = 0.00001, double th = 0.95) const {
-    const StrategyM3 allc("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
+    const StrategyM3 allc = StrategyM3::ALLC();
     auto s = StationaryState(e, &allc);
     return (s[0] < th);
   };  // check distinguishability against AllC
@@ -136,6 +136,11 @@ class StrategyM3 {
   int NextITGState(const StateM3 &s) const; // Trace the intra-transition graph by one step
   UnionFind MinimizeDFA(bool noisy = false) const;
   Partition MinimizeDFAHopcroft(bool noisy) const;
+  static StrategyM3 ALLC() { return StrategyM3("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"); }
+  static StrategyM3 ALLD() { return StrategyM3("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"); }
+  static StrategyM3 TFT() { return StrategyM3("cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"); }
+  static StrategyM3 WSLS() { return StrategyM3("cdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdc"); }
+  static StrategyM3 TF2T() { return StrategyM3("cccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccd"); }
   static StrategyM3 CAPRI2();
   static StrategyM3 sCAPRI2();
   static StrategyM3 CAPRI() { return StrategyM3("cdddcdddcdcddddddcddcdddddddddddcdcdcdcdddddddddddddcdccddddddcd"); }

@@ -43,7 +43,7 @@ void test_State() {
   myassert(prev[3] == StateM3("ddddcd"));
 }
 
-void test_AllC() {
+void test_BasicStrategies() {
   const std::array<Action, 64> acts = {
       C, C, C, C, D, D, D, D,
       C, C, C, C, D, D, D, D,
@@ -70,7 +70,7 @@ void test_AllC() {
   myassert(s1.IsDefensible());
 
   {
-    StrategyM3 alld("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd");
+    StrategyM3 alld = StrategyM3::ALLD();
     myassert(alld.IsDefensible() == true);
     myassert(alld.IsDefensibleDFA() == true);
     myassert(alld.IsEfficient() == false);
@@ -97,7 +97,7 @@ void test_AllC() {
 
   }
   {
-    StrategyM3 allc("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
+    StrategyM3 allc = StrategyM3::ALLC();
     myassert(allc.IsDefensible() == false);
     myassert(allc.IsDefensibleDFA() == false);
     myassert(allc.IsEfficient() == true);
@@ -123,7 +123,7 @@ void test_AllC() {
     myassert(full_a.size() == 1);
   }
   {
-    StrategyM3 tft("cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+    StrategyM3 tft = StrategyM3::TFT();
     myassert(tft.IsDefensible() == true);
     myassert(tft.IsDefensibleDFA() == true);
     myassert(tft.IsEfficient() == false);
@@ -158,7 +158,7 @@ void test_AllC() {
     myassert(full_automaton == full_a);
   }
   {
-    StrategyM3 wsls("cdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdc");
+    StrategyM3 wsls = StrategyM3::WSLS();
     myassert(wsls.IsDefensible() == false);
     myassert(wsls.IsDefensibleDFA() == false);
     myassert(wsls.IsEfficient() == true);
@@ -188,7 +188,7 @@ void test_AllC() {
     myassert(full_automaton == full_a);
   }
   {
-    StrategyM3 tf2t("cccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccd"); // tf2t
+    StrategyM3 tf2t = StrategyM3::TF2T(); // tf2t
     myassert(tf2t.IsDefensible() == false);
     myassert(tf2t.IsDefensibleDFA() == false);
     myassert(tf2t.IsEfficient() == true);
@@ -458,7 +458,7 @@ int main() {
   std::cout << "Testing StrategyM3 class" << std::endl;
 
   test_State();
-  test_AllC();
+  test_BasicStrategies();
   test_EfficiencyDefensible();
   test_TFTATFT();
   test_AON();
