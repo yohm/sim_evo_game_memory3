@@ -14,4 +14,6 @@ add_executable(test_DirectedGraph test_DirectedGraph.cpp DirectedGraph.hpp Direc
 
 add_executable(test_StrategyM3 test_StrategyM3.cpp ${SOURCE_FILES})
 
+add_executable(test_StrategySpace test_StrategySpace.cpp StrategySpace.hpp)
+
 add_executable(main_evo main_evo.cpp ${SOURCE_FILES})
