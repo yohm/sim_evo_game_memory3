@@ -1,0 +1,14 @@
+{
+  "Nmax": 30,
+  "sigma": 1.0,
+  "error_rate": 0.001,
+  "discrete_level": 1,
+  "strategy_space": "full",
+  "additional": [
+    "CAPRI2",
+    "CAPRI",
+    "AON2",
+    "AON3",
+    "TFT-ATFT"
+  ]
+}
