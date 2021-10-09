@@ -13,41 +13,74 @@ if (!(x)) {                                           \
 
 
 int main(int argc, char* argv[]) {
+  using mem_t = StrategySpace::mem_t;
+  const uint64_t ALLC = 0ul, ALLD = 0xFFFF'FFFF'FFFF'FFFF;
+  const uint64_t TFT = 0b01010101'01010101'01010101'01010101'01010101'01010101'01010101'01010101ull;
+  const uint64_t ATFT = ~TFT;
+  const uint64_t WSLS = 0b0101010110101010010101011010101001010101101010100101010110101010ull;
+  const uint64_t TFT_ATFT = 0b0101010110011001010001001001100101010101100110010100010010011001ull;
 
   {
     StrategySpace m0(0,0);
-    myassert(m0.IDMax() == 1ul);
+    myassert(m0.Size() == 2ul);
 
-    myassert(m0.ToLocalID(0) == 0ul);
-    // myassert(m0.ToLocalID(0xFFFF'FFFF'FFFF'FFFF) == 1ul);
+    myassert(m0.ToLocalID(ALLC) == 0ul);
+    myassert(m0.ToLocalID(ALLD) == 1ul);
 
-    myassert(m0.ToMem3ID(0) == 0ul);
-    // myassert(m0.ToMem3ID(1) == 0xFFFF'FFFF'FFFF'FFFFul);
+    myassert(m0.ToGlobalID(0) == ALLC);
+    myassert(m0.ToGlobalID(1) == ALLD);
+
+    // ALLC, AllD are memory 0
+    myassert(StrategySpace::MemLengths(ALLC) == mem_t({0ul, 0ul}));
+    myassert(StrategySpace::MemLengths(ALLD) == mem_t({0ul, 0ul}));
   }
 
   {
     StrategySpace reactive(0, 1);
-    myassert(reactive.IDMax() == 3ul);
+
+    myassert(reactive.Size() == 4ul);
+
+    myassert(reactive.ToLocalID(ALLC) == 0ul);
+    myassert(reactive.ToLocalID(TFT) == 1ul);
+    myassert(reactive.ToLocalID(ATFT) == 2ul);
+    myassert(reactive.ToLocalID(ALLD) == 3ul);
+
+    myassert(reactive.ToGlobalID(0) == ALLC);
+    myassert(reactive.ToGlobalID(1) == TFT);
+    myassert(reactive.ToGlobalID(2) == ATFT);
+    myassert(reactive.ToGlobalID(3) == ALLD);
+
+    myassert(StrategySpace::MemLengths(TFT) == mem_t({0ul, 1ul}));
+    myassert(StrategySpace::MemLengths(ATFT) == mem_t({0ul, 1ul}));
+  }
+
+  {
+    for (int m0 = 0; m0 <= 3; m0++) {
+      for (int m1 = 0; m1 <= 3; m1++) {
+        if (m0 + m1 >= 5) continue;
+        StrategySpace m(m0, m1);
+        myassert(m.Size() == (1ul << (1ul << (m0+m1))) );
+        for (uint64_t i = 0; i < m.Size(); i++) {
+          uint64_t gid = m.ToGlobalID(i);
+          auto ml = StrategySpace::MemLengths(gid);
+          myassert(ml[0] <= m0 && ml[1] <= m1);
+        }
+      }
+    }
   }
 
   {
     StrategySpace mem1(1, 1);
-    myassert(mem1.IDMax() == 15ul);
+    myassert(mem1.Size() == 16ul);
+    myassert(StrategySpace::MemLengths(WSLS) == mem_t({1ul, 1ul}));
   }
 
   {
-    StrategySpace mem1(2, 2);
-    myassert(mem1.IDMax() == 65535ul);
+    StrategySpace m22(2, 2);
+
+    myassert(m22.Size() == 65536ul);
+    myassert(StrategySpace::MemLengths(TFT_ATFT) == mem_t({2ul, 2ul}));
   }
 
-  {
-    StrategySpace mem1(1, 3);
-    myassert(mem1.IDMax() == 65535ul);
-  }
-
-  {
-    StrategySpace mem3(3, 3);
-    myassert(mem3.IDMax() == 0xFFFF'FFFF'FFFF'FFFF);
-  }
   return 0;
 }
