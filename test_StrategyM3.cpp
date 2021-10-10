@@ -483,6 +483,33 @@ int main(int argc, char* argv[]) {
       StrategyM3 str(argv[1]);
       str.Inspect(std::cout);
     }
+    else {
+      std::map<std::string,StrategyM3> m = {
+        {"ALLC", StrategyM3::ALLC()},
+        {"ALLD", StrategyM3::ALLD()},
+        {"TFT", StrategyM3::TFT()},
+        {"WSLS", StrategyM3::WSLS()},
+        {"TF2T", StrategyM3::TF2T()},
+        {"TFT-ATFT", StrategyM3::TFT_ATFT()},
+        {"CAPRI", StrategyM3::CAPRI()},
+        {"CAPRI2", StrategyM3::CAPRI2()},
+        {"AON2", StrategyM3::AON(2)},
+        {"AON3", StrategyM3::AON(3)},
+      };
+      std::string key(argv[1]);
+      if (m.find(key) != m.end()) {
+        m.at(key).Inspect(std::cout);
+      }
+      else {
+        std::cerr << "Error: unknown strategy " << key << std::endl;
+        std::cerr << "  supported strategies are [";
+        for (const auto& [k,v]: m) {
+          std::cerr << k << ", ";
+        }
+        std::cerr << "]" << std::endl;
+        return 1;
+      }
+    }
   }
   else {
     std::cerr << "Error: unsupported usage" << std::endl;
