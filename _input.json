@@ -2,8 +2,7 @@
   "Nmax": 30,
   "sigma": 1.0,
   "error_rate": 0.001,
-  "discrete_level": 1,
-  "strategy_space": "full",
+  "strategy_space": [1, 1],
   "additional": [
     "CAPRI2",
     "CAPRI",

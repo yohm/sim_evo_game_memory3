@@ -220,7 +220,7 @@ std::array<double, 64> StrategyM3::StationaryState2(double e, const StrategyM3 *
 }
 
 std::array<double, 64> StrategyM3::StationaryState(double e, const StrategyM3 *coplayer) const {
-  if (coplayer == NULL) { coplayer = this; }
+  if (coplayer == nullptr) { coplayer = this; }
 
   typedef Eigen::Triplet<double> T;
   std::vector<T> tripletVec;
