@@ -1,4 +1,5 @@
 #include <iostream>
+#include <regex>
 #include <cassert>
 #include "StrategyM3.hpp"
 
@@ -71,6 +72,7 @@ void test_BasicStrategies() {
 
   {
     StrategyM3 alld = StrategyM3::ALLD();
+    myassert( alld.ID() == 0xFFFF'FFFF'FFFF'FFFFull );
     myassert(alld.IsDefensible() == true);
     myassert(alld.IsDefensibleDFA() == true);
     myassert(alld.IsEfficient() == false);
@@ -98,6 +100,7 @@ void test_BasicStrategies() {
   }
   {
     StrategyM3 allc = StrategyM3::ALLC();
+    myassert( allc.ID() == 0ull );
     myassert(allc.IsDefensible() == false);
     myassert(allc.IsDefensibleDFA() == false);
     myassert(allc.IsEfficient() == true);
@@ -124,6 +127,7 @@ void test_BasicStrategies() {
   }
   {
     StrategyM3 tft = StrategyM3::TFT();
+    myassert( tft.ID() == 0b10101010'10101010'10101010'10101010'10101010'10101010'10101010'10101010ull );
     myassert(tft.IsDefensible() == true);
     myassert(tft.IsDefensibleDFA() == true);
     myassert(tft.IsEfficient() == false);
@@ -454,18 +458,36 @@ void PrintCAPRIs() {
   }
 }
 
-int main() {
-  std::cout << "Testing StrategyM3 class" << std::endl;
+int main(int argc, char* argv[]) {
+  if (argc == 1) {
+    std::cout << "Testing StrategyM3 class" << std::endl;
 
-  test_State();
-  test_BasicStrategies();
-  test_EfficiencyDefensible();
-  test_TFTATFT();
-  test_AON();
-  test_CAPRI();
-  test_CAPRI2();
-  test_sCAPRI2();
-  PrintCAPRIs();
+    test_State();
+    test_BasicStrategies();
+    test_EfficiencyDefensible();
+    test_TFTATFT();
+    test_AON();
+    test_CAPRI();
+    test_CAPRI2();
+    test_sCAPRI2();
+    // PrintCAPRIs();
+  }
+  else if (argc == 2) {
+    std::regex re_d(R"(\d+)"), re_c(R"([cd]{64})");
+    if (std::regex_match(argv[1], re_d)) {
+      uint64_t id = std::stoull(argv[1]);
+      StrategyM3 str(id);
+      str.Inspect(std::cout);
+    }
+    else if (std::regex_match(argv[1], re_c)) {
+      StrategyM3 str(argv[1]);
+      str.Inspect(std::cout);
+    }
+  }
+  else {
+    std::cerr << "Error: unsupported usage" << std::endl;
+    return 1;
+  }
 
   return 0;
 }

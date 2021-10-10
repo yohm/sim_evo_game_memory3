@@ -114,6 +114,14 @@ class StrategyM3 {
     for (size_t i = 0; i < 64; i++) { if (actions[i] != rhs.actions[i]) return false; }
     return true;
   }
+  uint64_t ID() const {
+    std::bitset<64> b(0ull);
+    for (int i = 0; i < 64; i++) {
+      if (actions[i] == D) { b.set(i, true); }
+    }
+    return b.to_ullong();
+  }
+  void Inspect(std::ostream& out) const;
 
   Action ActionAt(const StateM3 &s) const { return actions[s.ID()]; }
   void SetAction(const StateM3 &s, Action a) { actions[s.ID()] = a; }

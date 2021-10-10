@@ -18,6 +18,23 @@ StrategyM3::StrategyM3(uint64_t acts) {
   }
 }
 
+void StrategyM3::Inspect(std::ostream& out) const {
+  out << "ID: " << ID() << "\n"
+      << "String: " << ToString() << "\n";
+  for (size_t i = 0; i < 64; i++) {
+    out << StateM3(i) << "| " << actions[i] << "    ";
+    if (i % 8 == 7) out << "\n";
+  }
+  out << "IsEfficient: " << IsEfficientTopo() << "\n"
+      << "IsDefensible: " << IsDefensible() << "\n"
+      << "IsDefenisbleDFA: " << IsDefensibleDFA() << "\n"
+      << "IsDistinguishable: " << IsDistinguishableTopo() << "\n";
+  auto p0 = MinimizeDFAHopcroft(false), p1 = MinimizeDFAHopcroft(true);
+  out << "DFT minimized states: (" << p0.size() << " / " << p1.size() << ")\n";
+  out << "--- automaton without noise:\n" << p0
+      << "--- automaton with noise:\n" << p1 << std::endl;
+}
+
 std::vector<StateM3> StrategyM3::NextPossibleStates(StateM3 current) const {
   std::vector<StateM3> next_states;
   Action act_a = ActionAt(current);
