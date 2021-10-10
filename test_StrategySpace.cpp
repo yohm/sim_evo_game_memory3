@@ -15,10 +15,10 @@ if (!(x)) {                                           \
 int main(int argc, char* argv[]) {
   using mem_t = StrategySpace::mem_t;
   const uint64_t ALLC = 0ul, ALLD = 0xFFFF'FFFF'FFFF'FFFF;
-  const uint64_t TFT = 0b01010101'01010101'01010101'01010101'01010101'01010101'01010101'01010101ull;
+  const uint64_t TFT = 0b1010101010101010101010101010101010101010101010101010101010101010ull;
   const uint64_t ATFT = ~TFT;
   const uint64_t WSLS = 0b0101010110101010010101011010101001010101101010100101010110101010ull;
-  const uint64_t TFT_ATFT = 0b0101010110011001010001001001100101010101100110010100010010011001ull;
+  const uint64_t TFT_ATFT = 0b1001100100100010100110011010101010011001001000101001100110101010ull;
 
   {
     StrategySpace m0(0,0);
@@ -41,13 +41,13 @@ int main(int argc, char* argv[]) {
     myassert(reactive.Size() == 4ul);
 
     myassert(reactive.ToLocalID(ALLC) == 0ul);
-    myassert(reactive.ToLocalID(TFT) == 1ul);
-    myassert(reactive.ToLocalID(ATFT) == 2ul);
+    myassert(reactive.ToLocalID(ATFT) == 1ul);
+    myassert(reactive.ToLocalID(TFT)  == 2ul);
     myassert(reactive.ToLocalID(ALLD) == 3ul);
 
     myassert(reactive.ToGlobalID(0) == ALLC);
-    myassert(reactive.ToGlobalID(1) == TFT);
-    myassert(reactive.ToGlobalID(2) == ATFT);
+    myassert(reactive.ToGlobalID(1) == ATFT);
+    myassert(reactive.ToGlobalID(2) == TFT);
     myassert(reactive.ToGlobalID(3) == ALLD);
 
     myassert(StrategySpace::MemLengths(TFT) == mem_t({0ul, 1ul}));
