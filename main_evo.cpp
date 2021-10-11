@@ -9,10 +9,24 @@
 #include <random>
 #include <cassert>
 #include <fstream>
+#include <chrono>
 #include <Eigen/Dense>
 #include <nlohmann/json.hpp>
 #include "StrategyM3.hpp"
 #include "StrategySpace.hpp"
+
+
+std::string prev_key;
+std::chrono::system_clock::time_point start;
+void MeasureElapsed(const std::string& key) {
+  std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
+  if (!prev_key.empty()) {
+    double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+    std::cerr << "T " << prev_key << " finished in " << elapsed << " ms" << std::endl;
+  }
+  start = end;
+  prev_key = key;
+}
 
 
 class EvolutionaryGame {
@@ -208,7 +222,11 @@ int main(int argc, char *argv[]) {
   }
    */
 
+  MeasureElapsed("initialize");
+
   EvolutionaryGame eco(space, e);
+
+  MeasureElapsed("sweep over beta_N");
 
   auto SweepOverBeta = [&eco,cost,sigma](size_t N)->std::vector<std::pair<double,double>> {
     char fname1[100];
@@ -233,6 +251,8 @@ int main(int argc, char *argv[]) {
     ans.push_back(a);
   }
 
+  MeasureElapsed("calculate cooperation level");
+
   std::ofstream fout("cooperation_level.dat");
   for (size_t i = 0; i < ans[0].size(); i++) {
     fout << ans[0][i].first;
@@ -243,5 +263,6 @@ int main(int argc, char *argv[]) {
   }
   fout.close();
 
+  MeasureElapsed("done");
   return 0;
 }
