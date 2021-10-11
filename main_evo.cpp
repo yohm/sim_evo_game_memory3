@@ -37,44 +37,54 @@ class EvolutionaryGame {
   const StrategySpace space;
   const size_t N_SPECIES;
   const double e;
-  using ss_cache_t = std::array<double,64>;
+  using ss_cache_t = std::array<double,2>;  // probability of getting benefit & paying cost
   std::vector<std::vector<ss_cache_t> > ss_cache;
   // ss_cache[i][j] stores the stationary state when PG game is played by (i,j)
 
   void CalculateSSCache() {
     ss_cache.resize(N_SPECIES);
     for (size_t i = 0; i < N_SPECIES; i++) {
-      ss_cache[i].resize(N_SPECIES);
+      ss_cache[i].resize(N_SPECIES, {0.0, 0.0});
     }
 
     #pragma omp parallel for schedule(dynamic,1)
     for (uint64_t I=0; I < N_SPECIES * N_SPECIES; I++) {
       uint64_t i = I / N_SPECIES;
       uint64_t j = I % N_SPECIES;
+      if (i < j) continue;
       StrategyM3 si(space.ToGlobalID(i) );
       StrategyM3 sj(space.ToGlobalID(j) );
-      ss_cache[i][j] = si.StationaryState(e, &sj);
+      auto p = si.StationaryState(e, &sj);
+      for (size_t n = 0; n < 64; n++) {
+        StateM3 s(n);
+        if (i > j) {
+          if (s.a_1 == C) {
+            ss_cache[i][j][1] += p[n];
+            ss_cache[j][i][0] += p[n];
+          }
+          if (s.b_1 == C) {
+            ss_cache[i][j][0] += p[n];
+            ss_cache[j][i][1] += p[n];
+          }
+        }
+        else if (i == j) {
+          if (s.a_1 == C) {
+            ss_cache[i][j][1] += p[n];
+          }
+          if (s.b_1 == C) {
+            ss_cache[i][j][0] += p[n];
+          }
+        }
+      }
     }
   }
 
   // payoff of species i and j when the game is played by (i,j)
   std::array<double,2> PayoffVersus(size_t i, size_t j, double benefit, double cost) const {
-    std::array<double, 2> ans = {0.0, 0.0};
-    for (size_t n = 0; n < 64; n++) {
-      StateM3 s(n);
-      double pa = 0.0, pb = 0.0;
-      if (s.a_1 == C) {
-        pa -= cost;
-        pb += benefit;
-      }
-      if (s.b_1 == C) {
-        pb -= cost;
-        pa += benefit;
-      }
-      ans[0] += ss_cache[i][j][n] * pa;
-      ans[1] += ss_cache[i][j][n] * pb;
-    }
-    return ans;
+    return {
+      ss_cache[i][j][0] * benefit - ss_cache[i][j][1] * cost,
+      ss_cache[j][i][0] * benefit - ss_cache[j][i][1] * cost
+    };
   }
 
   // calculate the equilibrium distribution exactly by linear algebra
@@ -152,16 +162,7 @@ class EvolutionaryGame {
   }
 
   double CooperationLevelSpecies(size_t i) const {
-    const ss_cache_t &ss = ss_cache[i][i];
-    double level = 0.0;
-    for (size_t s = 0; s < 64; s++) {
-      StateM3 state(s);
-      size_t num_c = 0ul;
-      if (state.a_1 == C) num_c += 1;
-      if (state.b_1 == C) num_c += 1;
-      level += ss[s] * static_cast<double>(num_c) * 0.5;
-    }
-    return level;
+    return ss_cache[i][i][0];
   }
   double CooperationLevel(const std::vector<double> &eq_rate) const {
     assert(eq_rate.size() == N_SPECIES);
