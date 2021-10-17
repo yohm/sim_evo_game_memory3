@@ -21,7 +21,7 @@ std::chrono::system_clock::time_point start;
 void MeasureElapsed(const std::string& key) {
   std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
   if (!prev_key.empty()) {
-    double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
     std::cerr << "T " << prev_key << " finished in " << elapsed << " ms" << std::endl;
   }
   start = end;
@@ -229,36 +229,30 @@ int main(int argc, char *argv[]) {
 
   MeasureElapsed("sweep over beta_N");
 
-  auto SweepOverBeta = [&eco,cost,sigma](size_t N)->std::vector<std::pair<double,double>> {
-    char fname1[100];
-    sprintf(fname1, "abundance_%zu.dat", N);
-    std::ofstream eqout(fname1);
-    std::vector<std::pair<double,double>> c_levels;
+  std::ofstream eqout("abundance.dat");
+  std::vector<std::map<double, double> > c_levels(Nmax+1); // c_levels[N][beta]
+
+  for (int N = 2; N <= Nmax; N++) {
     for (int i = 5; i <= 300; i+=5) {
       double benefit = 1.0 + i / 100.0;
       auto eq = eco.CalculateEquilibrium(benefit, cost, N, sigma);
-      eqout << benefit << ' ';
+      eqout << N << ' ' << benefit << ' ';
       for (double x: eq) { eqout << x << ' '; }
       eqout << std::endl;
-      double c_lev = eco.CooperationLevel(eq);
-      c_levels.emplace_back(benefit, c_lev);
+      c_levels[N][benefit] = eco.CooperationLevel(eq);
     }
-    return c_levels;
-  };
-
-  std::vector<std::vector<std::pair<double,double>>> ans;
-  for (int N = 2; N <= Nmax; N++) {
-    auto a = SweepOverBeta(N);
-    ans.push_back(a);
   }
 
-  MeasureElapsed("calculate cooperation level");
-
   std::ofstream fout("cooperation_level.dat");
-  for (size_t i = 0; i < ans[0].size(); i++) {
-    fout << ans[0][i].first;
-    for (size_t j = 0; j < ans.size(); j++) {
-      fout << ' ' << ans[j][i].second;
+  fout << -1;
+  for (const auto& pair: c_levels[2]) {  // print header
+    fout << ' ' << pair.first;
+  }
+  fout << "\n";
+  for (int N = 2; N <= Nmax; N++) {
+    fout << N;
+    for (const auto& pair: c_levels[N]) {
+      fout << ' ' << pair.second;
     }
     fout << "\n";
   }
