@@ -1,19 +1,27 @@
 cmake_minimum_required(VERSION 3.7)
 project(cpp)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 
 #set(CMAKE_VERBOSE_MAKEFILE 1)
 
 set(SOURCE_FILES Action.cpp Action.hpp DirectedGraph.hpp DirectedGraph.cpp
         UnionFind.hpp Partition.hpp StrategyM3.hpp StrategyM3.cpp)
 find_package(MPI)
-include_directories(SYSTEM ${MPI_INCLUDE_PATH} /usr/local/include/eigen3 ${CMAKE_SOURCE_DIR}/json/include)
+find_package(OpenMP REQUIRED)
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+# See https://eigen.tuxfamily.org/dox/TopicCMakeGuide.html
+
+include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/json/include)
 
 add_executable(test_DirectedGraph test_DirectedGraph.cpp DirectedGraph.hpp DirectedGraph.cpp)
 
 add_executable(test_StrategyM3 test_StrategyM3.cpp ${SOURCE_FILES})
+target_link_libraries(test_StrategyM3 PRIVATE Eigen3::Eigen)
 
 add_executable(test_StrategySpace test_StrategySpace.cpp StrategySpace.hpp)
 
 add_executable(main_evo main_evo.cpp ${SOURCE_FILES})
+target_link_libraries(main_evo PRIVATE Eigen3::Eigen)
+target_link_libraries(main_evo PRIVATE OpenMP::OpenMP_CXX)
+target_compile_definitions(main_evo PRIVATE EIGEN_DONT_PARALLELIZE)
