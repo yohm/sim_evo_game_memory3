@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.7)
 project(cpp)
 
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_OSX_DEPLOYMENT_TARGET 11.6)
 
 #set(CMAKE_VERBOSE_MAKEFILE 1)
 
@@ -13,6 +14,7 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 # See https://eigen.tuxfamily.org/dox/TopicCMakeGuide.html
 
 include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/json/include)
+link_directories(/usr/local/lib)
 
 add_executable(test_DirectedGraph test_DirectedGraph.cpp DirectedGraph.hpp DirectedGraph.cpp)
 
@@ -25,3 +27,10 @@ add_executable(main_evo main_evo.cpp ${SOURCE_FILES})
 target_link_libraries(main_evo PRIVATE Eigen3::Eigen)
 target_link_libraries(main_evo PRIVATE OpenMP::OpenMP_CXX)
 target_compile_definitions(main_evo PRIVATE EIGEN_DONT_PARALLELIZE)
+
+add_executable(main_evo_MPI main_evo_MPI.cpp ${SOURCE_FILES})
+target_link_libraries(main_evo_MPI PRIVATE Eigen3::Eigen)
+target_link_libraries(main_evo_MPI PRIVATE OpenMP::OpenMP_CXX)
+target_compile_definitions(main_evo_MPI PRIVATE EIGEN_DONT_PARALLELIZE)
+target_link_libraries(main_evo_MPI PRIVATE MPI::MPI_CXX)
+target_link_libraries(main_evo_MPI PRIVATE scalapack)
