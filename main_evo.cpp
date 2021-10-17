@@ -191,9 +191,11 @@ int main(int argc, char *argv[]) {
     fin >> input;
   }
 
-  const uint64_t Nmax = input.at("Nmax").get<uint64_t>();
+  const uint64_t Nmax = input.at("N_max").get<uint64_t>();
   const double sigma = input.at("sigma").get<double>();
   const double e = input.at("error_rate").get<double>();
+  const double b_max = input.at("benefit_max").get<double>();
+  const double b_delta = input.at("benefit_delta").get<double>();
   int m0 = input.at("strategy_space").at(0).get<int>();
   int m1 = input.at("strategy_space").at(1).get<int>();
   StrategySpace space(m0, m1);
@@ -233,8 +235,9 @@ int main(int argc, char *argv[]) {
   std::vector<std::map<double, double> > c_levels(Nmax+1); // c_levels[N][beta]
 
   for (int N = 2; N <= Nmax; N++) {
-    for (int i = 5; i <= 300; i+=5) {
-      double benefit = 1.0 + i / 100.0;
+    for (int i = 1; ; i++) {
+      double benefit = 1.0 + b_delta * i;
+      if (benefit > b_max + 1.0e-6) { break;}
       auto eq = eco.CalculateEquilibrium(benefit, cost, N, sigma);
       eqout << N << ' ' << benefit << ' ';
       for (double x: eq) { eqout << x << ' '; }
