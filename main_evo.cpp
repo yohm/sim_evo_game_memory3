@@ -151,10 +151,10 @@ class EvolutionaryGame {
     double rho_inv = 0.0;
     for (int i=0; i < N; i++) {
       double x = sigma * i * 0.5 * (
-          (2*N-3-i) * s_yy
-          + (i+1) * s_yx
-          - (2*N-1-i) * s_xy
-          - (i-1) * s_xx
+            (double)(2*N-3-i) * s_yy
+          + (double)(i+1) * s_yx
+          - (double)(2*N-1-i) * s_xy
+          - (double)(i-1) * s_xx
       );
       rho_inv += std::exp(x);
     }
