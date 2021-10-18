@@ -15,6 +15,7 @@
 #include <mpi.h>
 #include "StrategyM3.hpp"
 #include "StrategySpace.hpp"
+#include "Scalapack.hpp"
 
 
 std::string prev_key;
@@ -93,6 +94,7 @@ class EvolutionaryGame {
   }
 
   // calculate the equilibrium distribution exactly by linear algebra
+  // [TODO] IMPLEMENT ME WITH MPI
   std::vector<double> CalculateEquilibrium(double benefit, double cost, uint64_t N, double sigma) const {
     Eigen::MatrixXd A(N_SPECIES, N_SPECIES);
     #pragma omp parallel for
@@ -169,6 +171,7 @@ class EvolutionaryGame {
   double CooperationLevelSpecies(size_t i) const {
     return GetSS(i, i)[0];
   }
+  // [TODO] IMPLEMENT ME WITH MPI
   double CooperationLevel(const std::vector<double> &eq_rate) const {
     assert(eq_rate.size() == N_SPECIES);
     double ans = 0.0;
@@ -181,90 +184,120 @@ class EvolutionaryGame {
 };
 
 
+struct Param {
+  uint64_t N_max;
+  double sigma, error_rate, benefit_max, benefit_delta;
+  int m0, m1;
+  std::array<int, 2> proc_grid_size;
+  int block_size;  // block size
+  explicit Param(const nlohmann::json& j) {
+    sigma = j.at("sigma").get<double>();
+    error_rate = j.at("error_rate").get<double>();
+    benefit_max = j.at("benefit_max").get<double>();
+    benefit_delta = j.at("benefit_delta").get<double>();
+    m0 = j.at("strategy_space").at(0).get<int>();
+    m1 = j.at("strategy_space").at(1).get<int>();
+    proc_grid_size[0] = j.at("process_grid_size").at(0).get<int>();
+    proc_grid_size[1] = j.at("process_grid_size").at(1).get<int>();
+    block_size = j.at("block_size").get<int>();
+  }
+};
+
+Param LoadInputParameters(const char* input_json_path) {
+  int my_rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  std::vector<uint8_t> buf;
+  using json = nlohmann::json;
+
+  if (my_rank == 0) {
+    json input;
+    std::ifstream fin(input_json_path);
+    fin >> input;
+    buf = std::move(json::to_msgpack(input));
+    uint64_t size = buf.size();
+    MPI_Bcast(&size, 1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
+    MPI_Bcast(buf.data(), buf.size(), MPI_BYTE, 0, MPI_COMM_WORLD);
+  }
+  else {
+    uint64_t size;
+    MPI_Bcast(&size, 1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
+    buf.resize(size);
+    MPI_Bcast(buf.data(), buf.size(), MPI_BYTE, 0, MPI_COMM_WORLD);
+  }
+
+  json j = json::from_msgpack(buf);
+  return Param(j);
+}
+
+
 int main(int argc, char *argv[]) {
   Eigen::initParallel();
+
+  MPI_Init(&argc, &argv);
+
   if( argc != 2 ) {
     std::cerr << "Error : invalid argument" << std::endl;
     std::cerr << "  Usage : " << argv[0] << " <parameter_json_file>" << std::endl;
-    return 1;
+    MPI_Abort(MPI_COMM_WORLD, 1);
   }
 
-  double cost = 1.0;
-  nlohmann::json input;
-  {
-    std::ifstream fin(argv[1]);
-    fin >> input;
+  Param p = LoadInputParameters(argv[1]);
+  StrategySpace space(p.m0, p.m1);
+
+  int n_procs;
+  MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
+  if (n_procs != p.proc_grid_size[0] * p.proc_grid_size[1]) {
+    std::cerr << "Error: invalid number of processes: " << n_procs << std::endl;
+    MPI_Abort(MPI_COMM_WORLD, 1);
   }
 
-  const uint64_t Nmax = input.at("N_max").get<uint64_t>();
-  const double sigma = input.at("sigma").get<double>();
-  const double e = input.at("error_rate").get<double>();
-  const double b_max = input.at("benefit_max").get<double>();
-  const double b_delta = input.at("benefit_delta").get<double>();
-  int m0 = input.at("strategy_space").at(0).get<int>();
-  int m1 = input.at("strategy_space").at(1).get<int>();
-  StrategySpace space(m0, m1);
-
-  /*
-  for (const nlohmann::json& _s: input.at("additional")) {
-    const std::string s = _s.get<std::string>();
-    if (s == "CAPRI2") {
-      pool.emplace_back(N_M1+0, discrete_level);
-    }
-    else if (s == "CAPRI") {
-      pool.emplace_back(N_M1+1, discrete_level);
-    }
-    else if (s == "TFT-ATFT") {
-      pool.emplace_back(N_M1 + 2, discrete_level);
-    }
-    else if (s == "AON2") {
-      pool.emplace_back(N_M1 + 3, discrete_level);
-    }
-    else if (s == "AON3") {
-      pool.emplace_back(N_M1 + 4, discrete_level);
-    }
-    else {
-      std::cerr << "[Error] unknown strategy " << s << " is given." << std::endl;
-      throw std::runtime_error("unknown species");
-    }
-  }
-   */
+  MatrixSolver solver(p.proc_grid_size, space.Size(), p.block_size);
+  const bool is_root = (solver.MYROW == 0 && solver.MYCOL == 0);
 
   MeasureElapsed("initialize");
 
-  EvolutionaryGame eco(space, e);
+  EvolutionaryGame eco(space, p.error_rate);
 
   MeasureElapsed("sweep over beta_N");
 
-  std::ofstream eqout("abundance.dat");
-  std::vector<std::map<double, double> > c_levels(Nmax+1); // c_levels[N][beta]
+  std::ofstream eqout;
+  std::vector<std::map<double, double> > c_levels; // c_levels[N][beta]
+  if (is_root) {
+    eqout.open("abundance.dat");
+    c_levels.resize(p.N_max+1);
+  }
 
-  for (int N = 2; N <= Nmax; N++) {
+  for (int N = 2; N <= p.N_max; N++) {
     for (int i = 1; ; i++) {
-      double benefit = 1.0 + b_delta * i;
-      if (benefit > b_max + 1.0e-6) { break;}
-      auto eq = eco.CalculateEquilibrium(benefit, cost, N, sigma);
-      eqout << N << ' ' << benefit << ' ';
-      for (double x: eq) { eqout << x << ' '; }
-      eqout << std::endl;
-      c_levels[N][benefit] = eco.CooperationLevel(eq);
+      double benefit = 1.0 + p.benefit_delta * i;
+      if (benefit > p.benefit_max + 1.0e-6) { break;}
+      auto eq = eco.CalculateEquilibrium(benefit, 1.0, N, p.sigma);
+      if (is_root) {
+        eqout << N << ' ' << benefit << ' ';
+        for (double x: eq) { eqout << x << ' '; }
+        eqout << std::endl;
+        c_levels[N][benefit] = eco.CooperationLevel(eq);
+      }
     }
   }
 
-  std::ofstream fout("cooperation_level.dat");
-  fout << -1;
-  for (const auto& pair: c_levels[2]) {  // print header
-    fout << ' ' << pair.first;
-  }
-  fout << "\n";
-  for (int N = 2; N <= Nmax; N++) {
-    fout << N;
-    for (const auto& pair: c_levels[N]) {
-      fout << ' ' << pair.second;
+  if (is_root) {
+    eqout.close();
+    std::ofstream fout("cooperation_level.dat");
+    fout << -1;
+    for (const auto& pair: c_levels[2]) {  // print header
+      fout << ' ' << pair.first;
     }
     fout << "\n";
+    for (int N = 2; N <= p.N_max; N++) {
+      fout << N;
+      for (const auto& pair: c_levels[N]) {
+        fout << ' ' << pair.second;
+      }
+      fout << "\n";
+    }
+    fout.close();
   }
-  fout.close();
 
   MeasureElapsed("done");
   return 0;
