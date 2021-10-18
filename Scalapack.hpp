@@ -77,6 +77,21 @@ extern "C" {
   // (in) ib, jb: the row and the column indices of the global matrix B,
   //   identifying the first row and column of the submatrix B.
   // (in) desc_b: descriptor of B matrix (out) info: error code
+
+  void pdgemm_( char *TRANSA, char *TRANSB,
+                int *M, int *N, int *K,
+                double *ALPHA,
+                double *A, int *IA, int *JA, int DESCA[9],
+                double *B, int *IB, int *JB, int DESCB[9],
+                double *BETA,
+                double *C, int *IC, int *JC, int DESCC[9] );
+  // calculate alpha*AB + beta*C
+  // A: M x K, B: K x N, C: M x N
+  // (in) TRANSA, TRANSB: 'n' or 't'  (normal or transpose)
+  // (in) M, N, K: sizes of the matrix
+  // (in) ALPHA, BETA: coefficient
+  // (in) A,B,C: input matrix
+  // (out) C: output matrix
 }
 
 
@@ -222,8 +237,27 @@ class Scalapack {
     // std::cerr << A << B;
     pdgesv_(&A.N, &B.M, A.Data(), &IA, &JA, A.DESC, IPIV.data(),
             B.Data(), &IB, &JB, B.DESC, &INFO);
-    std::cerr << INFO << std::endl;
+    if (INFO != 0) {
+      std::cerr << "Error: INFO of PDGESV is not zero but " << INFO << std::endl;
+      MPI_Abort(MPI_COMM_WORLD, 2);
+    }
     assert(INFO == 0);
+  }
+
+  // computes AB+C
+  // the results are stored in C
+  static void CallPDGEMM(double alpha, LMatrix& A, LMatrix& B, double beta, LMatrix& C) {
+    assert(A.N == C.N);
+    assert(A.M == B.N);
+    assert(B.M == C.M);
+    int IA = 1, JA = 1, IB = 1, JB = 1, IC = 1, JC = 1;
+    char trans = 'n';
+    pdgemm_(&trans, &trans, &C.N, &C.M, &A.M,
+            &alpha,
+            A.Data(), &IA, &JA, A.DESC,
+            B.Data(), &IB, &JB, B.DESC,
+            &beta,
+            C.Data(), &IC, &JC, C.DESC);
   }
 
 };
