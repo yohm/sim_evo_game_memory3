@@ -251,8 +251,8 @@ int main(int argc, char *argv[]) {
     MPI_Abort(MPI_COMM_WORLD, 1);
   }
 
-  MatrixSolver solver(p.proc_grid_size, space.Size(), p.block_size);
-  const bool is_root = (solver.MYROW == 0 && solver.MYCOL == 0);
+  Scalapack::Initialize(p.proc_grid_size);
+  const bool is_root = (Scalapack::MYROW == 0 && Scalapack::MYCOL == 0);
 
   MeasureElapsed("initialize");
 
