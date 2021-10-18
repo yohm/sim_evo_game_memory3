@@ -12,6 +12,7 @@
 #include <chrono>
 #include <Eigen/Dense>
 #include <nlohmann/json.hpp>
+#include <mpi.h>
 #include "StrategyM3.hpp"
 #include "StrategySpace.hpp"
 
@@ -32,58 +33,62 @@ void MeasureElapsed(const std::string& key) {
 class EvolutionaryGame {
  public:
   EvolutionaryGame(const StrategySpace& _space, double error) : space(_space), N_SPECIES(_space.Size()), e(error) {
-    CalculateSSCache();
   };
   const StrategySpace space;
   const size_t N_SPECIES;
   const double e;
-  using ss_cache_t = std::array<double,2>;  // probability of getting benefit & paying cost
-  std::vector<std::vector<ss_cache_t> > ss_cache;
-  // ss_cache[i][j] stores the stationary state when PG game is played by (i,j)
+  using ss_t = std::array<double,2>;  // probability of getting benefit & paying cost
+  mutable std::map<std::pair<size_t,size_t>, ss_t> ss_cache;
+  // ss_cache[(i,j)] stores the stationary state when PG game is played by (i,j)
 
-  void CalculateSSCache() {
-    ss_cache.resize(N_SPECIES);
-    for (size_t i = 0; i < N_SPECIES; i++) {
-      ss_cache[i].resize(N_SPECIES, {0.0, 0.0});
+  ss_t GetSS(size_t i, size_t j) const {
+    auto key = (i < j) ? std::make_pair(i, j) : std::make_pair(j, i);
+    auto found = ss_cache.find(key);
+    ss_t ss;
+    if (found != ss_cache.end()) {
+      ss = found->second;
     }
+    else {
+      ss = CalculateSS(i, j);
+      ss_cache[key] = ss;
+    }
+    return (i < j) ? ss : ss_t({ss[1], ss[0]});
+  }
 
-    #pragma omp parallel for schedule(dynamic,1)
-    for (uint64_t I=0; I < N_SPECIES * N_SPECIES; I++) {
-      uint64_t i = I / N_SPECIES;
-      uint64_t j = I % N_SPECIES;
-      if (i < j) continue;
-      StrategyM3 si(space.ToGlobalID(i) );
-      StrategyM3 sj(space.ToGlobalID(j) );
-      auto p = si.StationaryState(e, &sj);
-      for (size_t n = 0; n < 64; n++) {
-        StateM3 s(n);
-        if (i > j) {
-          if (s.a_1 == C) {
-            ss_cache[i][j][1] += p[n];
-            ss_cache[j][i][0] += p[n];
-          }
-          if (s.b_1 == C) {
-            ss_cache[i][j][0] += p[n];
-            ss_cache[j][i][1] += p[n];
-          }
+  ss_t CalculateSS(size_t i, size_t j) const {
+    StrategyM3 si(space.ToGlobalID(i) );
+    StrategyM3 sj(space.ToGlobalID(j) );
+    auto p = si.StationaryState(e, &sj);
+    ss_t ans = {0.0, 0.0};
+    for (size_t n = 0; n < 64; n++) {
+      StateM3 s(n);
+      if (i > j) {
+        if (s.a_1 == C) {
+          ans[1] += p[n];
         }
-        else if (i == j) {
-          if (s.a_1 == C) {
-            ss_cache[i][j][1] += p[n];
-          }
-          if (s.b_1 == C) {
-            ss_cache[i][j][0] += p[n];
-          }
+        if (s.b_1 == C) {
+          ans[0] += p[n];
+        }
+      }
+      else if (i == j) {
+        if (s.a_1 == C) {
+          ans[1] += p[n];
+        }
+        if (s.b_1 == C) {
+          ans[0] += p[n];
         }
       }
     }
+    return ans;
   }
 
   // payoff of species i and j when the game is played by (i,j)
   std::array<double,2> PayoffVersus(size_t i, size_t j, double benefit, double cost) const {
+    ss_t ss_ij = GetSS(i, j);
+    ss_t ss_ji = {ss_ij[1], ss_ij[0]};
     return {
-      ss_cache[i][j][0] * benefit - ss_cache[i][j][1] * cost,
-      ss_cache[j][i][0] * benefit - ss_cache[j][i][1] * cost
+      ss_ij[0] * benefit - ss_ij[1] * cost,
+      ss_ji[0] * benefit - ss_ji[1] * cost
     };
   }
 
@@ -162,7 +167,7 @@ class EvolutionaryGame {
   }
 
   double CooperationLevelSpecies(size_t i) const {
-    return ss_cache[i][i][0];
+    return GetSS(i, i)[0];
   }
   double CooperationLevel(const std::vector<double> &eq_rate) const {
     assert(eq_rate.size() == N_SPECIES);
