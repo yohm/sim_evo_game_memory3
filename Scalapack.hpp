@@ -208,37 +208,23 @@ class Scalapack {
     }
   };
 
-  /*
-  Scalapack(const std::array<int,2>& proc_grid_size, int matrix_size, int block_size) {
-    NPROW = proc_grid_size[0];
-    NPCOL = proc_grid_size[1];
-    sl_init_(&ICTXT, &NPROW, &NPCOL);
-    blacs_gridinfo_(&ICTXT, &NPROW, &NPCOL, &MYROW, &MYCOL);
-    N = matrix_size;
-    NB = block_size;
-
-    SUB_A_ROWS = (N / (NB * NPROW)) * NB + std::min(N % (NB * NPROW), NB);
-    SUB_A_COLS = (N / (NB * NPCOL)) * NB + std::min(N % (NB * NPCOL), NB);
-    SUB_B_ROWS = (N / (NB * NPROW)) * NB + std::min(N % (NB * NPROW), NB);
-
-    int RSRC = 0, CSRC = 0, NRHS = 1;
-    int INFO;
-    descinit_(DESCA, &N, &N, &NB, &NB, &RSRC, &CSRC, &ICTXT, &SUB_A_ROWS, &INFO);
+  // call PDGESV routine of Scalapack
+  // The solution is stored in B
+  static void CallPDGESV(LMatrix& A, LMatrix& B) {
+    assert(A.N == A.M);
+    assert(A.N == B.N);
+    int IA = 1;
+    int JA = 1;
+    int IB = 1;
+    int JB = 1;
+    int INFO = 0;
+    std::vector<int> IPIV(A.N + A.NB, 0);
+    // std::cerr << A << B;
+    pdgesv_(&A.N, &B.M, A.Data(), &IA, &JA, A.DESC, IPIV.data(),
+            B.Data(), &IB, &JB, B.DESC, &INFO);
+    std::cerr << INFO << std::endl;
     assert(INFO == 0);
-    descinit_(DESCB, &N, &NRHS, &NB, &NRHS, &RSRC, &CSRC, &ICTXT, &SUB_B_ROWS, &INFO);
-    assert(INFO == 0);
-
-    SUB_A.resize(SUB_A_ROWS * SUB_A_COLS, 0.0);
-    SUB_B.resize(SUB_B_ROWS, 0.0);
-    IPIV.resize(SUB_A_ROWS + NB);
   }
-  int SUB_A_ROWS, SUB_A_COLS, SUB_B_ROWS;
-  int N, NB;
-  int DESCA[9], DESCB[9];
-  std::vector<double> SUB_A;
-  std::vector<double> SUB_B;
-  std::vector<int> IPIV;
-   */
 
 };
 

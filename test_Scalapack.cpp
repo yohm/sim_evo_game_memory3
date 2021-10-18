@@ -45,6 +45,47 @@ void test_Matrix() {
 
 void test_PDGESV() {
 
+  const size_t N = 4, M = 4;
+  Scalapack::GMatrix A(4, 4);
+  // 1 2 3 4
+  // 5 6 7 8
+  // ...
+  A.Set(0, 0, 3.0); A.Set(0, 1, 1.0); A.Set(0, 2, 1.0); A.Set(0, 3, 2.0);
+  A.Set(1, 0, 5.0); A.Set(1, 1, 1.0); A.Set(1, 2, 3.0); A.Set(1, 3, 4.0);
+  A.Set(2, 0, 2.0); A.Set(2, 1, 0.0); A.Set(2, 2, 1.0); A.Set(2, 3, 0.0);
+  A.Set(3, 0, 1.0); A.Set(3, 1, 3.0); A.Set(3, 2, 2.0); A.Set(3, 3, 1.0);
+  Scalapack::LMatrix lA(A, 2, 2);
+
+  Scalapack::GMatrix B(4, 1);
+  B.Set(0, 0, 2.0);
+  B.Set(1, 0, 6.0);
+  B.Set(2, 0, 1.0);
+  B.Set(3, 0, 3.0);
+  Scalapack::LMatrix lB(B, 2, 1);
+
+  // if (my_rank == 0) {
+  //   std::cerr << "A: \n" << A << std::endl;
+  //   std::cerr << "B: \n" << B << std::endl;
+  //   std::cerr << "lA: \n" << lA << std::endl;
+  //   std::cerr << "lB: \n" << lB << std::endl;
+  // }
+
+  Scalapack::CallPDGESV(lA, lB);
+
+  Scalapack::GMatrix X = lB.ConstructGlobalMatrix();
+  if (my_rank == 0) {
+    std::cerr << "A: \n" << A << std::endl;
+    std::cerr << "B: \n" << B << std::endl;
+    std::cerr << "X: \n" << X << std::endl;
+
+    for (int i = 0; i < 4; i++) {
+      double ans = 0.0;
+      for (int j = 0; j < 4; j++) {
+        ans += A.At(i, j) * X.At(j, 0);
+      }
+      myassert( std::abs(ans - B.At(i, 0) ) < 1.0e-6 );
+    }
+  }
 }
 
 int main(int argc, char* argv[]) {
@@ -54,6 +95,8 @@ int main(int argc, char* argv[]) {
   Scalapack::Initialize({2, 2});
 
   test_Matrix();
+
+  test_PDGESV();
 
   MPI_Finalize();
   return 0;
