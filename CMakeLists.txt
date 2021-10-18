@@ -23,12 +23,16 @@ target_link_libraries(test_StrategyM3 PRIVATE Eigen3::Eigen)
 
 add_executable(test_StrategySpace test_StrategySpace.cpp StrategySpace.hpp)
 
+add_executable(test_Scalapack test_Scalapack.cpp Scalapack.cpp)
+target_link_libraries(test_Scalapack PRIVATE MPI::MPI_CXX)
+target_link_libraries(test_Scalapack PRIVATE scalapack)
+
 add_executable(main_evo main_evo.cpp ${SOURCE_FILES})
 target_link_libraries(main_evo PRIVATE Eigen3::Eigen)
 target_link_libraries(main_evo PRIVATE OpenMP::OpenMP_CXX)
 target_compile_definitions(main_evo PRIVATE EIGEN_DONT_PARALLELIZE)
 
-add_executable(main_evo_MPI main_evo_MPI.cpp ${SOURCE_FILES})
+add_executable(main_evo_MPI main_evo_MPI.cpp ${SOURCE_FILES} Scalapack.hpp Scalapack.cpp)
 target_link_libraries(main_evo_MPI PRIVATE Eigen3::Eigen)
 target_link_libraries(main_evo_MPI PRIVATE OpenMP::OpenMP_CXX)
 target_compile_definitions(main_evo_MPI PRIVATE EIGEN_DONT_PARALLELIZE)
