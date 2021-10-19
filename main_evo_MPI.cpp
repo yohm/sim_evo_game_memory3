@@ -107,6 +107,7 @@ class EvolutionaryGame {
       double p = FixationProb(benefit, cost, N, sigma, I, J);
       A.Set(i, j, p * (1.0/N_SPECIES) );
     }
+    A.DebugPrintAtRoot(std::cerr);
 
     // calculate diagonal elements
     Scalapack::LMatrix One(1, N_SPECIES, 1, block_size);
@@ -117,6 +118,9 @@ class EvolutionaryGame {
 
     // D = - A*One + One (calculate: 1.0 - \sum_j A_ij)
     Scalapack::CallPDGEMM(-1.0, A, One, 1.0, D);
+
+    std::cerr << "D:\n";
+    D.DebugPrintAtRoot(std::cerr);
 
     // set diagonal elements
     // subtract I since we solve Ax = x -> (A-I)x = 0
@@ -134,6 +138,9 @@ class EvolutionaryGame {
         A.Set(i, j, A.At(i, j)+1.0 );
       }
     }
+
+    std::cerr << "A (final):\n";
+    A.DebugPrintAtRoot(std::cerr);
 
     // B = (0 0 0 ... 1)
     Scalapack::LMatrix B(N_SPECIES, 1, block_size, 1);
@@ -203,6 +210,7 @@ struct Param {
   std::array<int, 2> proc_grid_size;
   int block_size;  // block size
   explicit Param(const nlohmann::json& j) {
+    N_max = j.at("N_max").get<uint64_t>();
     sigma = j.at("sigma").get<double>();
     error_rate = j.at("error_rate").get<double>();
     benefit_max = j.at("benefit_max").get<double>();
@@ -266,11 +274,11 @@ int main(int argc, char *argv[]) {
   Scalapack::Initialize(p.proc_grid_size);
   const bool is_root = (Scalapack::MYROW == 0 && Scalapack::MYCOL == 0);
 
-  MeasureElapsed("initialize");
+  if (is_root) MeasureElapsed("initialize");
 
   EvolutionaryGame eco(space, p.error_rate);
 
-  MeasureElapsed("sweep over beta_N");
+  if (is_root) MeasureElapsed("sweep over beta_N");
 
   std::ofstream eqout;
   std::vector<std::map<double, double> > c_levels; // c_levels[N][beta]
@@ -282,6 +290,7 @@ int main(int argc, char *argv[]) {
   for (int N = 2; N <= p.N_max; N++) {
     for (int i = 1; ; i++) {
       double benefit = 1.0 + p.benefit_delta * i;
+      if (is_root) std::cerr << "N,benefit: " << N << ' ' << benefit << std::endl;
       if (benefit > p.benefit_max + 1.0e-6) break;
       auto eq = eco.CalculateEquilibrium(benefit, 1.0, N, p.sigma, p.block_size);
       if (is_root) {
@@ -311,6 +320,6 @@ int main(int argc, char *argv[]) {
     fout.close();
   }
 
-  MeasureElapsed("done");
+  if (is_root) MeasureElapsed("done");
   return 0;
 }

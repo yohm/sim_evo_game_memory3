@@ -5,6 +5,8 @@
   "benefit_max": 4.0,
   "benefit_delta": 0.05,
   "strategy_space": [1, 1],
+  "process_grid_size": [2, 2],
+  "block_size": 8,
   "additional": [
     "CAPRI2",
     "CAPRI",
