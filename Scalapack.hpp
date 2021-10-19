@@ -189,11 +189,46 @@ class Scalapack {
       size_t J = bj * (MB * NPCOL) + p_col * MB + jj;
       return {I, J};
     }
+    // convert global matrix index (I,J) to local coordinate (i,j),(p_row,p_col)
+    std::pair<std::array<size_t,2>, std::array<int,2>> ToLocalCoordinate(size_t I, size_t J) const {
+      // global block coordinate (BI, BJ)
+      size_t BI = I / NB;
+      size_t BJ = J / MB;
+      // process coordinate (bi, bj)
+      int p_row = BI % NPROW;
+      int p_col = BJ % NPCOL;
+      // local block coordinate (bi, bj)
+      size_t bi = BI / NPROW;
+      size_t bj = BJ / NPCOL;
+      // local coordinate inside the block
+      size_t ii = I % NB;
+      size_t jj = J % MB;
+      // calculate global coordinate
+      size_t i = bi * NB + ii;
+      size_t j = bj * MB + jj;
+      return {{i, j}, {p_row, p_col}};
+    }
     double At(size_t i, size_t j) const {  // get an element at SUB[ (i,j) ]
       return SUB[i + j * SUB_ROWS];
     }
     void Set(size_t i, size_t j, double val) {
       SUB[i + j * SUB_ROWS] = val;
+    }
+    void SetByGlobalCoordinate(size_t I, size_t J, double val) {
+      auto local_pos = ToLocalCoordinate(I, J);
+      auto ij = local_pos.first;
+      auto proc_grid = local_pos.second;
+      if (proc_grid[0] == MYROW && proc_grid[1] == MYCOL) {
+        Set(ij[0], ij[1], val);
+      }
+    }
+    void SetAll(double val) {
+      for (size_t i = 0; i < SUB_ROWS; i++) {
+        for (size_t j = 0; j < SUB_COLS; j++) {
+          auto IJ = ToGlobalCoordinate(i, j);
+          if (IJ[0] < N && IJ[1] < M) Set(i, j, val);
+        }
+      }
     }
     double* Data() { return SUB.data(); }
     friend std::ostream& operator<<(std::ostream& os, const LMatrix& lm) {
@@ -206,7 +241,7 @@ class Scalapack {
       return os;
     }
 
-    GMatrix ConstructGlobalMatrix() {
+    GMatrix ConstructGlobalMatrix() const {
       GMatrix A(N, M);
       for (size_t i = 0; i < SUB_ROWS; i++) {
         for (size_t j = 0; j < SUB_COLS; j++) {
@@ -220,6 +255,25 @@ class Scalapack {
       GMatrix AA(N, M);
       MPI_Allreduce(A.Data(), AA.Data(), N*M, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
       return AA;
+    }
+    void DebugPrintAtRoot(std::ostream& out) const {
+      MPI_Barrier(MPI_COMM_WORLD);
+      GMatrix g = ConstructGlobalMatrix();
+      if (Scalapack::MYROW == 0 && Scalapack::MYCOL == 0) {
+        out << g;
+      }
+      MPI_Barrier(MPI_COMM_WORLD);
+    }
+
+    static LMatrix Identity(int N, int M, int NB, int MB) {
+      LMatrix lm(N, M, NB, MB);
+      for (size_t i = 0; i < lm.SUB_ROWS; i++) {
+        for (size_t j = 0; j < lm.SUB_COLS; j++) {
+          auto IJ = lm.ToGlobalCoordinate(i, j);
+          if (IJ[0] < N && IJ[1] < M && IJ[0] == IJ[1]) lm.Set(i, j, 1.0);
+        }
+      }
+      return lm;
     }
   };
 

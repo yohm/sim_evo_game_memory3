@@ -1,5 +1,7 @@
 #include <iostream>
 #include <cassert>
+#include <string>
+#include <sstream>
 #include "mpi.h"
 #include "Scalapack.hpp"
 
@@ -34,18 +36,59 @@ void test_Matrix() {
 
   for (int pi = 0; pi < Scalapack::NPROW; pi++) {
     for (int pj = 0; pj < Scalapack::NPCOL; pj++) {
-      if (my_rank == pi*Scalapack::NPCOL+pj) {
+      if (Scalapack::MYROW == pi && Scalapack::MYCOL == pj) {
         std::cerr << "(pi, pj): " << pi << ", " << pj << std::endl;
         std::cerr << lm;
+        for (int i = 0; i < lm.SUB_ROWS; i++) {
+          for (int j = 0; j < lm.SUB_COLS; j++) {
+            auto IJ = lm.ToGlobalCoordinate(i, j);
+            if (IJ[0] < lm.N && IJ[1] < lm.M) {
+              auto local_pos = lm.ToLocalCoordinate(IJ[0], IJ[1]);
+              myassert( local_pos.first[0] == i );
+              myassert( local_pos.first[1] == j );
+              myassert( local_pos.second[0] == pi );
+              myassert( local_pos.second[1] == pj );
+            }
+          }
+        }
       }
       MPI_Barrier(MPI_COMM_WORLD);
+    }
+  }
+
+  lm.SetByGlobalCoordinate(1, 3, -100.0);
+  std::ostringstream ss;
+  lm.DebugPrintAtRoot(ss);
+  if (my_rank == 0) {
+    myassert( ss.str() == std::string("0 1 2 3 4 \n5 6 7 -100 9 \n10 11 12 13 14 \n") );
+  }
+
+  // test SetAll
+  {
+    Scalapack::LMatrix m1(3, 1, 2, 1);
+    m1.SetAll(1.0);
+    Scalapack::GMatrix g1 = m1.ConstructGlobalMatrix();
+    for (size_t i = 0; i < 3; i++) {
+      myassert( g1.At(i, 0) == 1.0 );
+    }
+  }
+
+  // test Identity
+  {
+    auto g = Scalapack::LMatrix::Identity(3, 3, 2, 2).ConstructGlobalMatrix();
+    if (my_rank == 0) {
+      for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+          if (i == j) { myassert(g.At(i, j) == 1.0); }
+          else { myassert(g.At(i, j) == 0.0); }
+        }
+      }
     }
   }
 }
 
 void test_PDGESV() {
 
-  const size_t N = 4, M = 4;
   Scalapack::GMatrix A(4, 4);
   A.Set(0, 0, 3.0); A.Set(0, 1, 1.0); A.Set(0, 2, 1.0); A.Set(0, 3, 2.0);
   A.Set(1, 0, 5.0); A.Set(1, 1, 1.0); A.Set(1, 2, 3.0); A.Set(1, 3, 4.0);
