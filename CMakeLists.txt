@@ -10,7 +10,7 @@ set(SOURCE_FILES Action.cpp Action.hpp DirectedGraph.hpp DirectedGraph.cpp
         UnionFind.hpp Partition.hpp StrategyM3.hpp StrategyM3.cpp)
 find_package(MPI)
 find_package(OpenMP REQUIRED)
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(Eigen3 REQUIRED)
 # See https://eigen.tuxfamily.org/dox/TopicCMakeGuide.html
 
 include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/json/include)
@@ -22,6 +22,7 @@ add_executable(test_StrategyM3 test_StrategyM3.cpp ${SOURCE_FILES})
 target_link_libraries(test_StrategyM3 PRIVATE Eigen3::Eigen)
 
 add_executable(test_StrategySpace test_StrategySpace.cpp StrategySpace.hpp)
+target_link_libraries(test_StrategySpace PRIVATE Eigen3::Eigen)
 
 add_executable(test_Scalapack test_Scalapack.cpp Scalapack.cpp)
 target_link_libraries(test_Scalapack PRIVATE MPI::MPI_CXX)
