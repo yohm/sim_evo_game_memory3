@@ -94,50 +94,54 @@ class EvolutionaryGame {
   }
 
   // calculate the equilibrium distribution exactly by linear algebra
-  // [TODO] IMPLEMENT ME WITH MPI
-  std::vector<double> CalculateEquilibrium(double benefit, double cost, uint64_t N, double sigma) const {
-    Eigen::MatrixXd A(N_SPECIES, N_SPECIES);
-    #pragma omp parallel for
-    for (size_t ii = 0; ii < N_SPECIES * N_SPECIES; ii++) {
-      size_t i = ii / N_SPECIES;
-      size_t j = ii % N_SPECIES;
-      if (i == j) { A(i, j) = 0.0; continue; }
-      double p = FixationProb(benefit, cost, N, sigma, i, j);
-      // std::cerr << "Fixation prob of mutant (mutant,resident): " << p << " (" << pool[i].ToString() << ", " << pool[j].ToString() << ")" << std::endl;
-      A(i, j) = p * (1.0 / N_SPECIES);
+  Scalapack::GMatrix CalculateEquilibrium(double benefit, double cost, uint64_t N, double sigma, size_t block_size) const {
+    Scalapack::LMatrix A(N_SPECIES, N_SPECIES, block_size, block_size);
+    // calculate off-diagonal elements
+    for (int ii = 0; ii < A.SUB_ROWS * A.SUB_COLS; ii++) {
+      int i = ii / A.SUB_COLS;
+      int j = ii % A.SUB_COLS;
+      auto IJ = A.ToGlobalCoordinate(i, j);
+      int I = IJ[0], J = IJ[1];
+      if (I >= N || J >= N) continue;
+      if (I == J) continue;  // diagonal elements are calculated later
+      double p = FixationProb(benefit, cost, N, sigma, I, J);
+      A.Set(i, j, p * (1.0/N_SPECIES) );
     }
 
-    for (size_t j = 0; j < N_SPECIES; j++) {
-      double p_sum = 0.0;
-      for (size_t i = 0; i < N_SPECIES; i++) {
-        p_sum += A(i, j);
+    // calculate diagonal elements
+    Scalapack::LMatrix One(1, N_SPECIES, 1, block_size);
+    One.SetAll(1.0);
+
+    Scalapack::LMatrix D(1, N_SPECIES, 1, block_size);
+    D.SetAll(1.0);
+
+    // D = - A*One + One (calculate: 1.0 - \sum_j A_ij)
+    Scalapack::CallPDGEMM(-1.0, A, One, 1.0, D);
+
+    // set diagonal elements
+    // subtract I since we solve Ax = x -> (A-I)x = 0
+    auto gD = D.ConstructGlobalMatrix();
+    for (int I = 0; I < N_SPECIES; I++) {
+      A.SetByGlobalCoordinate(I, I, gD.At(I, I)-1.0);
+    }
+
+    // normalization condition (last row sums upto 1)
+    for (int I = 0; I < N_SPECIES; I++) {
+      auto local_pos = A.ToLocalCoordinate(N_SPECIES-1, I);
+      auto proc_grid = local_pos.second;
+      if (proc_grid[0] == Scalapack::MYROW && proc_grid[1] == Scalapack::MYCOL) {
+        size_t i = local_pos.first[0], j = local_pos.first[1];
+        A.Set(i, j, A.At(i, j)+1.0 );
       }
-      assert(p_sum <= 1.0);
-      A(j, j) = 1.0 - p_sum; // probability that the state doesn't change
     }
 
-    // subtract Ax = x => (A-I)x = 0
-    for (size_t i = 0; i < A.rows(); i++) {
-      A(i, i) -= 1.0;
-    }
-    // normalization condition
-    for (size_t i = 0; i < A.rows(); i++) {
-      A(A.rows()-1, i) += 1.0;
-    }
+    // B = (0 0 0 ... 1)
+    Scalapack::LMatrix B(N_SPECIES, 1, block_size, 1);
+    B.SetByGlobalCoordinate(N_SPECIES-1, 0, 1.0);
 
-    Eigen::VectorXd b(A.rows());
-    for(int i=0; i<A.rows()-1; i++) { b(i) = 0.0;}
-    b(A.rows()-1) = 1.0;
-    Eigen::VectorXd x = A.householderQr().solve(b);
-    std::vector<double> ans(A.rows());
-    double prob_total = 0.0;
-    for(int i=0; i<ans.size(); i++) {
-      ans[i] = x(i);
-      prob_total += x(i);
-      assert(x(i) > -0.000001);
-    }
-    assert(std::abs(prob_total - 1.0) < 0.00001);
-    return ans;
+    Scalapack::CallPDGESV(A, B);
+
+    return B.ConstructGlobalMatrix();
   }
 
   double FixationProb(double benefit, double cost, uint64_t N, double sigma, size_t mutant_idx, size_t resident_idx) const {
@@ -171,13 +175,21 @@ class EvolutionaryGame {
   double CooperationLevelSpecies(size_t i) const {
     return GetSS(i, i)[0];
   }
-  // [TODO] IMPLEMENT ME WITH MPI
-  double CooperationLevel(const std::vector<double> &eq_rate) const {
-    assert(eq_rate.size() == N_SPECIES);
+  double CooperationLevel(Scalapack::GMatrix& eq_rate) const {
+    assert(eq_rate.Size() == N_SPECIES);
+    // for a better load-balancing, minimal block size is used
+    Scalapack::LMatrix C(N_SPECIES, 1, 1, 1);
+    for (int i = 0; i < C.SUB_ROWS; i++) {
+      auto I = C.ToGlobalCoordinate(i, 0)[0];
+      if (I < N_SPECIES) {
+        double c_lev = CooperationLevelSpecies(I);
+        C.Set(i, 0, eq_rate.At(I, 0) * c_lev);
+      }
+    }
+    Scalapack::GMatrix gC = C.ConstructGlobalMatrix();
     double ans = 0.0;
-    for (size_t i = 0; i < N_SPECIES; i++) {
-      double c_lev = CooperationLevelSpecies(i);
-      ans += eq_rate[i] * c_lev;
+    for (size_t I = 0; I < N_SPECIES; I++) {
+      ans += gC.At(I, 0);
     }
     return ans;
   }
@@ -270,11 +282,11 @@ int main(int argc, char *argv[]) {
   for (int N = 2; N <= p.N_max; N++) {
     for (int i = 1; ; i++) {
       double benefit = 1.0 + p.benefit_delta * i;
-      if (benefit > p.benefit_max + 1.0e-6) { break;}
-      auto eq = eco.CalculateEquilibrium(benefit, 1.0, N, p.sigma);
+      if (benefit > p.benefit_max + 1.0e-6) break;
+      auto eq = eco.CalculateEquilibrium(benefit, 1.0, N, p.sigma, p.block_size);
       if (is_root) {
         eqout << N << ' ' << benefit << ' ';
-        for (double x: eq) { eqout << x << ' '; }
+        for (size_t i = 0; i < eq.Size(); i++) { eqout << eq.At(i, 0) << ' '; }
         eqout << std::endl;
         c_levels[N][benefit] = eco.CooperationLevel(eq);
       }
