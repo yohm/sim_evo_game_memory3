@@ -51,7 +51,7 @@ class EvolutionaryGame {
       ss = found->second;
     }
     else {
-      ss = CalculateSS(i, j);
+      ss = CalculateSS(key.first, key.second);
       ss_cache[key] = ss;
     }
     return (i < j) ? ss : ss_t({ss[1], ss[0]});
@@ -88,7 +88,6 @@ class EvolutionaryGame {
   std::array<double,2> PayoffVersus(size_t i, size_t j, double benefit, double cost) const {
     ss_t ss_ij = GetSS(i, j);
     ss_t ss_ji = {ss_ij[1], ss_ij[0]};
-    // IC(i, j, ss_ij, ss_ji);
     return {
       ss_ij[0] * benefit - ss_ij[1] * cost,
       ss_ji[0] * benefit - ss_ji[1] * cost
