@@ -110,6 +110,11 @@ class Scalapack {
     sl_init_(&ICTXT, &NPROW, &NPCOL);
     blacs_gridinfo_(&ICTXT, &NPROW, &NPCOL, &MYROW, &MYCOL);
   }
+  static void Finalize() {
+    blacs_gridexit_(&ICTXT);
+    int blacs_exitcode = 0;
+    blacs_exit_(&blacs_exitcode);
+  }
 
   // global matrix
   class GMatrix {
@@ -119,7 +124,7 @@ class Scalapack {
     }
     size_t N, M;
     std::vector<double> A;
-    double At(size_t I, size_t J) const { return A[I*M+J]; }
+    double At(size_t I, size_t J) const { return A.at(I*M+J); }
     void Set(size_t I, size_t J, double val) { A[I*M+J] = val; }
     double* Data() { return A.data(); }
     size_t Size() { return A.size(); }

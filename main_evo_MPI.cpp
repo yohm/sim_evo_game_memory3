@@ -102,7 +102,7 @@ class EvolutionaryGame {
       int j = ii % A.SUB_COLS;
       auto IJ = A.ToGlobalCoordinate(i, j);
       int I = IJ[0], J = IJ[1];
-      if (I >= N || J >= N) continue;
+      if (I >= N_SPECIES || J >= N_SPECIES) continue;
       if (I == J) continue;  // diagonal elements are calculated later
       double p = FixationProb(benefit, cost, N, sigma, I, J);
       A.Set(i, j, p * (1.0/N_SPECIES) );
@@ -116,17 +116,17 @@ class EvolutionaryGame {
     Scalapack::LMatrix D(1, N_SPECIES, 1, block_size);
     D.SetAll(1.0);
 
-    // D = - A*One + One (calculate: 1.0 - \sum_j A_ij)
-    Scalapack::CallPDGEMM(-1.0, A, One, 1.0, D);
+    // D = - One*A + One (calculate: 1.0 - \sum_j A_ij)
+    Scalapack::CallPDGEMM(-1.0, One, A, 1.0, D);
 
-    std::cerr << "D:\n";
-    D.DebugPrintAtRoot(std::cerr);
+    // std::cerr << "D:\n";
+    // D.DebugPrintAtRoot(std::cerr);
 
     // set diagonal elements
     // subtract I since we solve Ax = x -> (A-I)x = 0
     auto gD = D.ConstructGlobalMatrix();
     for (int I = 0; I < N_SPECIES; I++) {
-      A.SetByGlobalCoordinate(I, I, gD.At(I, I)-1.0);
+      A.SetByGlobalCoordinate(I, I, gD.At(0, I)-1.0);
     }
 
     // normalization condition (last row sums upto 1)
@@ -139,15 +139,21 @@ class EvolutionaryGame {
       }
     }
 
-    std::cerr << "A (final):\n";
-    A.DebugPrintAtRoot(std::cerr);
+    // std::cerr << "A (final):\n";
+    // A.DebugPrintAtRoot(std::cerr);
 
     // B = (0 0 0 ... 1)
     Scalapack::LMatrix B(N_SPECIES, 1, block_size, 1);
     B.SetByGlobalCoordinate(N_SPECIES-1, 0, 1.0);
 
+    // std::cerr << "B:\n";
+    // B.DebugPrintAtRoot(std::cerr);
+
+    // std::cerr << "PDGESV:\n";
     Scalapack::CallPDGESV(A, B);
 
+    // std::cerr << "X:\n";
+    // B.DebugPrintAtRoot(std::cerr);
     return B.ConstructGlobalMatrix();
   }
 
@@ -293,11 +299,12 @@ int main(int argc, char *argv[]) {
       if (is_root) std::cerr << "N,benefit: " << N << ' ' << benefit << std::endl;
       if (benefit > p.benefit_max + 1.0e-6) break;
       auto eq = eco.CalculateEquilibrium(benefit, 1.0, N, p.sigma, p.block_size);
+      double pc = eco.CooperationLevel(eq);
       if (is_root) {
         eqout << N << ' ' << benefit << ' ';
         for (size_t i = 0; i < eq.Size(); i++) { eqout << eq.At(i, 0) << ' '; }
         eqout << std::endl;
-        c_levels[N][benefit] = eco.CooperationLevel(eq);
+        c_levels[N][benefit] = pc;
       }
     }
   }
@@ -321,5 +328,6 @@ int main(int argc, char *argv[]) {
   }
 
   if (is_root) MeasureElapsed("done");
+  Scalapack::Finalize();
   return 0;
 }
