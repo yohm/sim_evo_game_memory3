@@ -64,7 +64,7 @@ class EvolutionaryGame {
     ss_t ans = {0.0, 0.0};
     for (size_t n = 0; n < 64; n++) {
       StateM3 s(n);
-      if (i > j) {
+      if (i != j) {
         if (s.a_1 == C) {
           ans[1] += p[n];
         }
@@ -109,7 +109,7 @@ class EvolutionaryGame {
       double p = FixationProb(benefit, cost, N, sigma, I, J);
       A.Set(i, j, p * (1.0/N_SPECIES) );
     }
-    A.DebugPrintAtRoot(std::cerr);
+    // A.DebugPrintAtRoot(std::cerr);
 
     // calculate diagonal elements
     Scalapack::LMatrix One(1, N_SPECIES, 1, block_size);
