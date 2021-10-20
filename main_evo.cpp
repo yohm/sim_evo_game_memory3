@@ -12,6 +12,7 @@
 #include <chrono>
 #include <Eigen/Dense>
 #include <nlohmann/json.hpp>
+#include "icecream-cpp/icecream.hpp"
 #include "StrategyM3.hpp"
 #include "StrategySpace.hpp"
 
@@ -77,6 +78,7 @@ class EvolutionaryGame {
         }
       }
     }
+    // IC(ss_cache);
   }
 
   // payoff of species i and j when the game is played by (i,j)

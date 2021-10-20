@@ -13,6 +13,7 @@
 #include <Eigen/Dense>
 #include <nlohmann/json.hpp>
 #include <mpi.h>
+#include "icecream-cpp/icecream.hpp"
 #include "StrategyM3.hpp"
 #include "StrategySpace.hpp"
 #include "Scalapack.hpp"
@@ -87,6 +88,7 @@ class EvolutionaryGame {
   std::array<double,2> PayoffVersus(size_t i, size_t j, double benefit, double cost) const {
     ss_t ss_ij = GetSS(i, j);
     ss_t ss_ji = {ss_ij[1], ss_ij[0]};
+    // IC(i, j, ss_ij, ss_ji);
     return {
       ss_ij[0] * benefit - ss_ij[1] * cost,
       ss_ji[0] * benefit - ss_ji[1] * cost
