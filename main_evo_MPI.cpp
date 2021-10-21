@@ -34,28 +34,16 @@ void MeasureElapsed(const std::string& key) {
 
 class EvolutionaryGame {
  public:
-  EvolutionaryGame(const StrategySpace& _space, double error) : space(_space), N_SPECIES(_space.Size()), e(error) {
+  EvolutionaryGame(const StrategySpace& _space, double error) :
+    space(_space), N_SPECIES(_space.Size()), e(error), ss_cache_is_ready(false) {
   };
   const StrategySpace space;
   const size_t N_SPECIES;
   const double e;
   using ss_t = std::array<double,2>;  // probability of getting benefit & paying cost
-  mutable std::map<std::pair<size_t,size_t>, ss_t> ss_cache;
+  std::map<std::pair<size_t,size_t>, ss_t> ss_cache;
+  bool ss_cache_is_ready;
   // ss_cache[(i,j)] stores the stationary state when PG game is played by (i,j)
-
-  ss_t GetSS(size_t i, size_t j) const {
-    auto key = (i < j) ? std::make_pair(i, j) : std::make_pair(j, i);
-    auto found = ss_cache.find(key);
-    ss_t ss;
-    if (found != ss_cache.end()) {
-      ss = found->second;
-    }
-    else {
-      ss = CalculateSS(key.first, key.second);
-      ss_cache[key] = ss;
-    }
-    return (i < j) ? ss : ss_t({ss[1], ss[0]});
-  }
 
   ss_t CalculateSS(size_t i, size_t j) const {
     StrategyM3 si(space.ToGlobalID(i) );
@@ -84,9 +72,41 @@ class EvolutionaryGame {
     return ans;
   }
 
+  void PrepareSSCache(size_t block_size) {
+    Scalapack::LMatrix T(N_SPECIES, N_SPECIES, block_size, block_size);
+    using key_t = std::pair<size_t,size_t>;
+    std::set<key_t> keys;
+    for (size_t i = 0; i < N_SPECIES; i++) { // diagonal elements are necessary for all processes
+      keys.insert({i, i});
+    }
+    for (size_t i = 0; i < T.SUB_ROWS; i++) {
+      for (size_t j = 0; j < T.SUB_COLS; j++) {
+        auto IJ = T.ToGlobalCoordinate(i, j);
+        int I = IJ[0], J = IJ[1];
+        if (I >= N_SPECIES || J >= N_SPECIES || I == J) continue;
+        auto k = (I < J) ? std::make_pair(I, J) : std::make_pair(J, I);
+        keys.insert(k);
+      }
+    }
+    std::vector<key_t> keys_vec(keys.begin(), keys.end());
+    std::vector<ss_t> ss_vec(keys_vec.size());
+    for (size_t i = 0; i < keys_vec.size(); i++) {
+      ss_vec[i] = CalculateSS(keys_vec[i].first, keys_vec[i].second);
+    }
+    for (size_t i = 0; i < keys_vec.size(); i++) {
+      auto key = keys_vec[i];
+      ss_cache[key] = ss_vec[i];
+      if (key.first != key.second) {
+        auto key2 = key_t({key.second, key.first});
+        ss_cache[key2] = {ss_vec[i][1], ss_vec[i][0]};
+      }
+    }
+    ss_cache_is_ready = true;
+  }
+
   // payoff of species i and j when the game is played by (i,j)
   std::array<double,2> PayoffVersus(size_t i, size_t j, double benefit, double cost) const {
-    ss_t ss_ij = GetSS(i, j);
+    ss_t ss_ij = ss_cache.at({i, j});
     ss_t ss_ji = {ss_ij[1], ss_ij[0]};
     return {
       ss_ij[0] * benefit - ss_ij[1] * cost,
@@ -97,6 +117,11 @@ class EvolutionaryGame {
   // calculate the equilibrium distribution exactly by linear algebra
   Scalapack::GMatrix CalculateEquilibrium(double benefit, double cost, uint64_t N, double sigma, size_t block_size) const {
     Scalapack::LMatrix A(N_SPECIES, N_SPECIES, block_size, block_size);
+    if (!ss_cache_is_ready) {
+      std::cerr << "Error: cache is not ready" << std::endl;
+      MPI_Abort(MPI_COMM_WORLD, 3);
+    }
+
     // calculate off-diagonal elements
     for (int ii = 0; ii < A.SUB_ROWS * A.SUB_COLS; ii++) {
       int i = ii / A.SUB_COLS;
@@ -187,7 +212,7 @@ class EvolutionaryGame {
   }
 
   double CooperationLevelSpecies(size_t i) const {
-    return GetSS(i, i)[0];
+    return ss_cache.at({i, i})[0];
   }
   double CooperationLevel(Scalapack::GMatrix& eq_rate) const {
     assert(eq_rate.Size() == N_SPECIES);
@@ -268,6 +293,11 @@ int main(int argc, char *argv[]) {
     MPI_Abort(MPI_COMM_WORLD, 1);
   }
 
+  int my_rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  icecream::ic.prefix(
+    "ic (", [my_rank] { return my_rank; }, "): ");
+
   Param p = LoadInputParameters(argv[1]);
   StrategySpace space(p.m0, p.m1);
 
@@ -285,7 +315,8 @@ int main(int argc, char *argv[]) {
 
   EvolutionaryGame eco(space, p.error_rate);
 
-  if (is_root) MeasureElapsed("sweep over beta_N");
+  if (is_root) MeasureElapsed("Prepare SSCache");
+  eco.PrepareSSCache(p.block_size);
 
   std::ofstream eqout;
   std::vector<std::map<double, double> > c_levels; // c_levels[N][beta]
@@ -293,11 +324,11 @@ int main(int argc, char *argv[]) {
     eqout.open("abundance.dat");
     c_levels.resize(p.N_max+1);
   }
-
+  if (is_root) MeasureElapsed("Sweep Over beta and N");
   for (int N = 2; N <= p.N_max; N++) {
+    if (is_root) std::cerr << "N: " << N << std::endl;
     for (int i = 1; ; i++) {
       double benefit = 1.0 + p.benefit_delta * i;
-      if (is_root) std::cerr << "N,benefit: " << N << ' ' << benefit << std::endl;
       if (benefit > p.benefit_max + 1.0e-6) break;
       auto eq = eco.CalculateEquilibrium(benefit, 1.0, N, p.sigma, p.block_size);
       double pc = eco.CooperationLevel(eq);

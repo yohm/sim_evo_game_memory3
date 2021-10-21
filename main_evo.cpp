@@ -237,6 +237,7 @@ int main(int argc, char *argv[]) {
   std::vector<std::map<double, double> > c_levels(Nmax+1); // c_levels[N][beta]
 
   for (int N = 2; N <= Nmax; N++) {
+    std::cerr << "N: " << N << std::endl;
     for (int i = 1; ; i++) {
       double benefit = 1.0 + b_delta * i;
       if (benefit > b_max + 1.0e-6) { break;}
