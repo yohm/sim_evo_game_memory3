@@ -90,6 +90,7 @@ class EvolutionaryGame {
     }
     std::vector<key_t> keys_vec(keys.begin(), keys.end());
     std::vector<ss_t> ss_vec(keys_vec.size());
+    #pragma omp parallel for
     for (size_t i = 0; i < keys_vec.size(); i++) {
       ss_vec[i] = CalculateSS(keys_vec[i].first, keys_vec[i].second);
     }
@@ -123,6 +124,7 @@ class EvolutionaryGame {
     }
 
     // calculate off-diagonal elements
+    #pragma omp parallel for
     for (int ii = 0; ii < A.SUB_ROWS * A.SUB_COLS; ii++) {
       int i = ii / A.SUB_COLS;
       int j = ii % A.SUB_COLS;
