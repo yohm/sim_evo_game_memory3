@@ -8,6 +8,7 @@
 #include <set>
 #include <functional>
 #include <queue>
+#include <algorithm>
 
 typedef std::vector<long> comp_t;
 typedef std::vector<comp_t> components_t;

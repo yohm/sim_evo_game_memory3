@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <array>
+#include <cassert>
 #include "mpi.h"
 
 #ifndef CPP_SCALAPACK_HPP
