@@ -117,6 +117,7 @@ class EvolutionaryGame {
 
   // calculate the equilibrium distribution exactly by linear algebra
   Scalapack::GMatrix CalculateEquilibrium(double benefit, double cost, uint64_t N, double sigma, size_t block_size) const {
+    if (Scalapack::MYROW == 0 && Scalapack::MYCOL == 0) MeasureElapsed("CalculateEquilibrium");
     Scalapack::LMatrix A(N_SPECIES, N_SPECIES, block_size, block_size);
     if (!ss_cache_is_ready) {
       std::cerr << "Error: cache is not ready" << std::endl;
@@ -177,6 +178,7 @@ class EvolutionaryGame {
     // std::cerr << "B:\n";
     // B.DebugPrintAtRoot(std::cerr);
 
+    if (Scalapack::MYROW == 0 && Scalapack::MYCOL == 0) MeasureElapsed("CallPDGESV");
     // std::cerr << "PDGESV:\n";
     Scalapack::CallPDGESV(A, B);
 
@@ -326,17 +328,18 @@ int main(int argc, char *argv[]) {
     eqout.open("abundance.dat");
     c_levels.resize(p.N_max+1);
   }
-  if (is_root) MeasureElapsed("Sweep Over beta and N");
+
   for (int N = 2; N <= p.N_max; N++) {
     if (is_root) std::cerr << "N: " << N << std::endl;
     for (int i = 1; ; i++) {
       double benefit = 1.0 + p.benefit_delta * i;
       if (benefit > p.benefit_max + 1.0e-6) break;
       auto eq = eco.CalculateEquilibrium(benefit, 1.0, N, p.sigma, p.block_size);
+      if (is_root) MeasureElapsed("CalcCooperationLevel");
       double pc = eco.CooperationLevel(eq);
       if (is_root) {
         eqout << N << ' ' << benefit << ' ';
-        for (size_t i = 0; i < eq.Size(); i++) { eqout << eq.At(i, 0) << ' '; }
+        // for (size_t i = 0; i < eq.Size(); i++) { eqout << eq.At(i, 0) << ' '; }
         eqout << std::endl;
         c_levels[N][benefit] = pc;
       }
