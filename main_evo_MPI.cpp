@@ -329,7 +329,9 @@ int main(int argc, char *argv[]) {
     c_levels.resize(p.N_max+1);
   }
 
-  for (int N = 2; N <= p.N_max; N++) {
+  std::vector<int> N_array = {2,3,4,6,8,12,16,24,32,48,64};
+  for (int N: N_array) {
+    if (N > p.N_max) break;
     if (is_root) std::cerr << "N: " << N << std::endl;
     for (int i = 1; ; i++) {
       double benefit = 1.0 + p.benefit_delta * i;
@@ -338,8 +340,9 @@ int main(int argc, char *argv[]) {
       if (is_root) MeasureElapsed("CalcCooperationLevel");
       double pc = eco.CooperationLevel(eq);
       if (is_root) {
+        MeasureElapsed("Output");
         eqout << N << ' ' << benefit << ' ';
-        // for (size_t i = 0; i < eq.Size(); i++) { eqout << eq.At(i, 0) << ' '; }
+        for (size_t i = 0; i < eq.Size(); i++) { eqout << eq.At(i, 0) << ' '; }
         eqout << std::endl;
         c_levels[N][benefit] = pc;
       }
