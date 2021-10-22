@@ -357,7 +357,8 @@ int main(int argc, char *argv[]) {
       fout << ' ' << pair.first;
     }
     fout << "\n";
-    for (int N = 2; N <= p.N_max; N++) {
+    for (int N: N_array) {
+      if (N > p.N_max) break;
       fout << N;
       for (const auto& pair: c_levels[N]) {
         fout << ' ' << pair.second;
