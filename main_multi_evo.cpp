@@ -33,6 +33,7 @@ class Parameters {
   public:
   Parameters() { };
   size_t T_max;
+  size_t T_print;  // output interval
   size_t M, N;
   double benefit;
   double error_rate;
@@ -41,7 +42,8 @@ class Parameters {
   std::array<size_t,2> strategy_space;
   uint64_t _seed;
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(Parameters, T_max, M, N, benefit, error_rate, sigma, sigma_g, T_g, strategy_space, _seed);
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(Parameters, T_max, T_print,
+                                 M, N, benefit, error_rate, sigma, sigma_g, T_g, strategy_space, _seed);
 };
 
 
@@ -193,6 +195,14 @@ class MultilevelEvoGame {
     }
     return count;
   }
+
+  size_t NumFriendlyRival() const {
+    size_t count = 0;
+    for (const Species& s: species) {
+      if (s.is_defensible && s.is_efficient) count++;
+    }
+    return count;
+  }
 };
 
 
@@ -221,8 +231,11 @@ int main(int argc, char *argv[]) {
 
   for (size_t t = 0; t < prm.T_max; t++) {
     eco.Update();
-    std::cout << eco.CooperationLevel() << ' ' << eco.NumEfficient() << ' ' << eco.NumDefensible() << std::endl;
-    IC(t, eco.species);
+    if (t % prm.T_print == prm.T_print - 1) {
+      std::cout << t << ' ' << eco.CooperationLevel() << ' ' << eco.NumFriendlyRival()
+                << ' ' << eco.NumEfficient() << ' ' << eco.NumDefensible() << std::endl;
+      IC(t, eco.species);
+    }
   }
 
   MeasureElapsed("done");
