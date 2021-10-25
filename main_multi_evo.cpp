@@ -45,38 +45,47 @@ class Parameters {
 };
 
 
-class MultilevelEvoGame {
- public:
-  MultilevelEvoGame(const Parameters& _prm) : prm(_prm), space(prm.strategy_space[0], prm.strategy_space[1]), rnd(prm._seed) {
-    species.resize(prm.M);
-    coop_levels.resize(prm.M);
-    for (size_t i = 0; i < species.size(); i++) {
-      species[i] = uni(rnd) * space.Size();
-      coop_levels[i] = CooperationLevel(species[i]);
-    }
-  };
-  Parameters prm;
-  StrategySpace space;
-  std::vector<uint64_t> species;
-  std::vector<double> coop_levels;
-  std::mt19937_64 rnd;
-  std::uniform_real_distribution<double> uni;
-
-  double CooperationLevel(size_t strategy_local_id) const {
-    uint64_t gid = space.ToGlobalID(strategy_local_id);
-    StrategyM3 strategy(gid);
-    auto p = strategy.StationaryState(prm.error_rate);
+class Species {
+  public:
+  explicit Species(uint64_t _strategy_id, double e) : strategy_id(_strategy_id) {
+    StrategyM3 strategy(strategy_id);
+    auto p = strategy.StationaryState(e);
     double c = 0.0;
     for (size_t n = 0; n < 64; n++) {
       StateM3 state(n);
       if (state.a_1 == C) { c += p[n]; }
     }
-    return c;
-  }
+    cooperation_level = c;
+    is_efficient = strategy.IsEfficientTopo();
+    is_defensible = strategy.IsDefensible();
+  };
+  uint64_t strategy_id;
+  double cooperation_level;
+  double is_efficient;
+  double is_defensible;
+};
+
+
+class MultilevelEvoGame {
+ public:
+  MultilevelEvoGame(const Parameters& _prm) : prm(_prm), space(prm.strategy_space[0], prm.strategy_space[1]), rnd(prm._seed) {
+    species.reserve(prm.M);
+    for (size_t i = 0; i < prm.M; i++) {
+      uint64_t id = space.ToGlobalID( uni(rnd) * space.Size() );
+      species.emplace_back(id, prm.error_rate);
+    }
+    IC(species);
+  };
+  Parameters prm;
+  StrategySpace space;
+  std::vector<Species> species;
+  std::mt19937_64 rnd;
+  std::uniform_real_distribution<double> uni;
+
   // payoff of species i and j when the game is played by (i,j)
-  std::array<double,2> Payoffs(size_t strategy_i_local_id, size_t strategy_j_local_id) const {
-    StrategyM3 si(space.ToGlobalID(strategy_i_local_id) );
-    StrategyM3 sj(space.ToGlobalID(strategy_j_local_id) );
+  std::array<double,2> Payoffs(uint64_t strategy_i, uint64_t strategy_j) const {
+    StrategyM3 si(strategy_i);
+    StrategyM3 sj(strategy_j);
     auto p = si.StationaryState(prm.error_rate, &sj);
     double c_ij = 0.0, c_ji = 0.0;  // cooperation level from i to j and vice versa
     for (size_t n = 0; n < 64; n++) {
@@ -92,12 +101,13 @@ class MultilevelEvoGame {
     return { c_ji * benefit - c_ij * cost, c_ij * benefit - c_ji * cost };
   }
 
-  double FixationProb(uint64_t mutant_id, uint64_t resident_id, double mutant_coop_level, double resident_coop_level) const {
+  // double FixationProb(uint64_t mutant_id, uint64_t resident_id, double mutant_coop_level, double resident_coop_level) const {
+  double FixationProb(const Species& mutant, const Species& resident) const {
     // \frac{1}{\rho} = \sum_{i=0}^{N-1} \exp\left( \sigma \sum_{j=1}^{i} \left[(N-j-1)s_{yy} + js_{yx} - (N-j)s_{xy} - (j-1)s_{xx} \right] \right) \\
     //                = \sum_{i=0}^{N-1} \exp\left( \frac{\sigma i}{2} \left[(-i+2N-3)s_{yy} + (i+1)s_{yx} - (-i+2N-1)s_{xy} - (i-1)s_{xx} \right] \right)
-    double s_xx = (prm.benefit - 1.0) * mutant_coop_level;     // == Payoffs(mutant_id, mutant_id)[0];
-    double s_yy = (prm.benefit - 1.0) * resident_coop_level;   // == Payoffs(resident_id, resident_id)[0];
-    auto xy = Payoffs(mutant_id, resident_id);
+    double s_xx = (prm.benefit - 1.0) * mutant.cooperation_level;     // == Payoffs(mutant_id, mutant_id)[0];
+    double s_yy = (prm.benefit - 1.0) * resident.cooperation_level;   // == Payoffs(resident_id, resident_id)[0];
+    auto xy = Payoffs(mutant.strategy_id, resident.strategy_id);
     double s_xy = xy[0];
     double s_yx = xy[1];
     size_t N = prm.N;
@@ -121,11 +131,11 @@ class MultilevelEvoGame {
     return 1.0 / rho_inv;
   }
 
-  double SelectionProb(double coop_level_i, double coop_level_j) const {
-    double s_a = (prm.benefit - 1.0) * coop_level_i;
-    double s_b = (prm.benefit - 1.0) * coop_level_j;
+  double SelectionProb(const Species& s_i, const Species& s_j) const {
+    double pi = (prm.benefit - 1.0) * s_i.cooperation_level;
+    double pj = (prm.benefit - 1.0) * s_j.cooperation_level;
     // f_{A\to B} = { 1 + \exp[ \sigma_g (s_A - s_B) ] }^{-1}
-    return 1.0 / (1.0 + std::exp( prm.sigma_g * (s_a - s_b) ));
+    return 1.0 / (1.0 + std::exp( prm.sigma_g * (pi - pj) ));
   }
 
   void Update() {
@@ -140,38 +150,54 @@ class MultilevelEvoGame {
 
   void IntraGroupSelection() {
     size_t g = uni(rnd) * prm.M;
-    uint64_t mut_id = uni(rnd) * space.Size();
-    double mut_coop_level = CooperationLevel(mut_id);
-    double f = FixationProb(mut_id, species[g], mut_coop_level, coop_levels[g]);
+    uint64_t mut_id = space.ToGlobalID( uni(rnd) * space.Size() );
+    Species mut(mut_id, prm.error_rate);
+    // double mut_coop_level = CooperationLevel(mut_id);
+    double f = FixationProb(mut, species[g]);
     if (uni(rnd) < f) {
-      IC(g, species[g], mut_id, f);
-      species[g] = mut_id;
-      coop_levels[g] = mut_coop_level;
+      IC(g, species[g], mut, f);
+      species[g] = mut;
     }
   }
 
   void InterGroupSelection() {
     size_t g1 = uni(rnd) * prm.M;
     size_t g2 = static_cast<size_t>(g1 + 1 + uni(rnd) * (prm.M-1)) % prm.M;
-    double p = SelectionProb(coop_levels[g1], coop_levels[g2]);
+    double p = SelectionProb(species[g1], species[g2]);
     if (uni(rnd) < p) {
-      IC(g1, g2, coop_levels[g1], coop_levels[g2], p);
+      IC(species[g1], species[g2], p);
       species[g1] = species[g2];
-      coop_levels[g1] = coop_levels[g2];
     }
   }
 
   double CooperationLevel() const {
     double ans = 0.0;
-    for (double c: coop_levels) {
-      ans += c;
+    for (const Species& s: species) {
+      ans += s.cooperation_level;
     }
-    return ans / coop_levels.size();
+    return ans / species.size();
+  }
+
+  size_t NumEfficient() const {
+    size_t count = 0;
+    for (const Species& s: species) {
+      if (s.is_efficient) count++;
+    }
+    return count;
+  }
+
+  size_t NumDefensible() const {
+    size_t count = 0;
+    for (const Species& s: species) {
+      if (s.is_defensible) count++;
+    }
+    return count;
   }
 };
 
 
 int main(int argc, char *argv[]) {
+  icecream::ic.disable();
   Eigen::initParallel();
   if( argc != 2 ) {
     std::cerr << "Error : invalid argument" << std::endl;
@@ -195,8 +221,8 @@ int main(int argc, char *argv[]) {
 
   for (size_t t = 0; t < prm.T_max; t++) {
     eco.Update();
-    std::cout << eco.CooperationLevel() << std::endl;
-    IC(t, eco.species, eco.coop_levels, eco.CooperationLevel());
+    std::cout << eco.CooperationLevel() << ' ' << eco.NumEfficient() << ' ' << eco.NumDefensible() << std::endl;
+    IC(t, eco.species);
   }
 
   MeasureElapsed("done");
