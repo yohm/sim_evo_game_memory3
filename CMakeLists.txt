@@ -13,7 +13,7 @@ find_package(OpenMP REQUIRED)
 find_package(Eigen3 REQUIRED)
 # See https://eigen.tuxfamily.org/dox/TopicCMakeGuide.html
 
-include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/json/include)
+include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/json/include ${CMAKE_SOURCE_DIR}/eigen)
 link_directories(/usr/local/lib)
 
 add_executable(test_DirectedGraph test_DirectedGraph.cpp DirectedGraph.hpp DirectedGraph.cpp)
@@ -39,3 +39,8 @@ target_link_libraries(main_evo_MPI PRIVATE OpenMP::OpenMP_CXX)
 target_compile_definitions(main_evo_MPI PRIVATE EIGEN_DONT_PARALLELIZE)
 target_link_libraries(main_evo_MPI PRIVATE MPI::MPI_CXX)
 target_link_libraries(main_evo_MPI PRIVATE scalapack)
+
+add_executable(main_multi_evo main_multi_evo.cpp ${SOURCE_FILES})
+target_link_libraries(main_evo PRIVATE Eigen3::Eigen)
+target_link_libraries(main_evo PRIVATE OpenMP::OpenMP_CXX)
+target_compile_definitions(main_evo PRIVATE EIGEN_DONT_PARALLELIZE)

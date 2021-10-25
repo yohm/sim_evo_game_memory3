@@ -1,0 +1,12 @@
+{
+  "T_max": 100,
+  "M": 8,
+  "N": 2,
+  "benefit": 2.0,
+  "error_rate": 0.001,
+  "sigma": 1.0,
+  "sigma_g": 1.0,
+  "T_g": 1.0,
+  "strategy_space": [1, 1],
+  "_seed": 1234567890
+}
