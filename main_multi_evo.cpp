@@ -34,6 +34,7 @@ class Parameters {
   Parameters() { };
   size_t T_max;
   size_t T_print;  // output interval
+  size_t T_init;   // initial period
   size_t M, N;
   double benefit;
   double error_rate;
@@ -43,7 +44,7 @@ class Parameters {
   std::string initial_condition; // "random", "TFT", "WSLS", "TFT-ATFT", "CAPRI"
   uint64_t _seed;
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(Parameters, T_max, T_print,
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(Parameters, T_max, T_print, T_init,
                                  M, N, benefit, error_rate, sigma, sigma_g, T_g, strategy_space,
                                  initial_condition, _seed);
 };
@@ -251,14 +252,33 @@ int main(int argc, char *argv[]) {
 
   MeasureElapsed("simulation");
 
+  double c_level_avg = 0.0, fr_fraction = 0.0, efficient_fraction = 0.0, defensible_fraction = 0.0;
+  size_t count = 0ul;
+
   for (size_t t = 0; t < prm.T_max; t++) {
     eco.Update();
+    if (t > prm.T_init) {
+      c_level_avg += eco.CooperationLevel();
+      fr_fraction += (double)eco.NumFriendlyRival() / prm.M;
+      efficient_fraction += (double)eco.NumEfficient() / prm.M;
+      defensible_fraction += (double)eco.NumDefensible() / prm.M;
+      count++;
+    }
     if (t % prm.T_print == prm.T_print - 1) {
       std::cout << t << ' ' << eco.CooperationLevel() << ' ' << eco.NumFriendlyRival()
                 << ' ' << eco.NumEfficient() << ' ' << eco.NumDefensible() << std::endl;
       IC(t, eco.species);
     }
   }
+
+  nlohmann::json output;
+  output["cooperation_level"] = c_level_avg / count;
+  output["friendly_rival_fraction"] = fr_fraction / count;
+  output["efficient_fraction"] = efficient_fraction / count;
+  output["defensible_fraction"] = defensible_fraction / count;
+  std::ofstream fout("_output.json");
+  fout << output;
+  fout.close();
 
   MeasureElapsed("done");
   return 0;

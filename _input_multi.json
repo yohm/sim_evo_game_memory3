@@ -1,6 +1,7 @@
 {
   "T_max": 100,
   "T_print":10,
+  "T_init": 50,
   "M": 8,
   "N": 2,
   "benefit": 2.0,
