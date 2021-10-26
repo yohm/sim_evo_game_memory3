@@ -60,6 +60,7 @@ int main(int argc, char* argv[]) {
         if (m0 + m1 >= 5) continue;
         StrategySpace m(m0, m1);
         myassert(m.Size() == (1ul << (1ul << (m0+m1))) );
+        myassert(m.Max() == m.Size() - 1);
         for (uint64_t i = 0; i < m.Size(); i++) {
           uint64_t gid = m.ToGlobalID(i);
           auto ml = StrategySpace::MemLengths(gid);
@@ -72,6 +73,7 @@ int main(int argc, char* argv[]) {
   {
     StrategySpace mem1(1, 1);
     myassert(mem1.Size() == 16ul);
+    myassert(mem1.Max() == 15ul);
     myassert(StrategySpace::MemLengths(WSLS) == mem_t({1ul, 1ul}));
   }
 
@@ -79,7 +81,13 @@ int main(int argc, char* argv[]) {
     StrategySpace m22(2, 2);
 
     myassert(m22.Size() == 65536ul);
+    myassert(m22.Max() == 65535ul);
     myassert(StrategySpace::MemLengths(TFT_ATFT) == mem_t({2ul, 2ul}));
+  }
+
+  {
+    StrategySpace m33(3, 3);
+    myassert(m33.Max() == 18446744073709551615ull);
   }
 
   return 0;

@@ -11,12 +11,21 @@ public:
   using mem_t = std::array<size_t,2>;
   StrategySpace(size_t mem_self, size_t mem_cop) : mem({mem_self, mem_cop}) {
     if (mem[0] > 3 || mem[1] > 3) { throw std::runtime_error("unsupported memory length"); }
-    if (mem[0] == 3 && mem[1] == 3) { throw std::runtime_error("unsupported memory length"); }
   };
   const mem_t mem;
   uint64_t Size() const {
+    if (mem[0] == 3 && mem[1] == 3) { throw std::runtime_error("unsupported memory length"); }
     uint64_t ent = 1ull << (mem[0] + mem[1]);
     return 1ull << ent;
+  }
+  uint64_t Max() const {
+    uint64_t ent = 1ull << (mem[0] + mem[1]);
+    uint64_t ans = 0ul;
+    for (size_t i = 0; i < ent; i++) {
+      ans <<= 1ul;
+      ans += 1ul;
+    }
+    return ans;
   }
   uint64_t ToGlobalID(uint64_t local_id) const {
     if (local_id >= Size()) { throw std::runtime_error("invalid ID"); }
