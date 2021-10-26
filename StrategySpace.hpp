@@ -28,7 +28,7 @@ public:
     return ans;
   }
   uint64_t ToGlobalID(uint64_t local_id) const {
-    if (local_id >= Size()) { throw std::runtime_error("invalid ID"); }
+    if (local_id > Max()) { throw std::runtime_error("invalid ID"); }
 
     std::bitset<64> gid(0ull), lid(local_id);
     uint64_t upper_mask = ((1ul<<mem[0])-1) << 3ul, lower_mask = (1ul<<mem[1])-1;

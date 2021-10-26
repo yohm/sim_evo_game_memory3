@@ -40,10 +40,12 @@ class Parameters {
   double sigma, sigma_g;
   double T_g;
   std::array<size_t,2> strategy_space;
+  std::string initial_condition; // "random", "TFT", "WSLS", "TFT-ATFT", "CAPRI"
   uint64_t _seed;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(Parameters, T_max, T_print,
-                                 M, N, benefit, error_rate, sigma, sigma_g, T_g, strategy_space, _seed);
+                                 M, N, benefit, error_rate, sigma, sigma_g, T_g, strategy_space,
+                                 initial_condition, _seed);
 };
 
 
@@ -74,9 +76,26 @@ class MultilevelEvoGame {
   prm(_prm), space(prm.strategy_space[0], prm.strategy_space[1]),
   rnd(prm._seed), sample_space(0ull, space.Max()) {
     species.reserve(prm.M);
-    for (size_t i = 0; i < prm.M; i++) {
-      uint64_t id = space.ToGlobalID( sample_space(rnd));
-      species.emplace_back(id, prm.error_rate);
+    if (prm.initial_condition == "random") {
+      for (size_t i = 0; i < prm.M; i++) {
+        uint64_t id = space.ToGlobalID( sample_space(rnd));
+        species.emplace_back(id, prm.error_rate);
+      }
+    }
+    else {
+      uint64_t str_id = 0;
+      if (prm.initial_condition == "ALLC") str_id = StrategyM3::ALLC().ID();
+      else if (prm.initial_condition == "ALLD") str_id = StrategyM3::ALLD().ID();
+      else if (prm.initial_condition == "TFT") str_id = StrategyM3::TFT().ID();
+      else if (prm.initial_condition == "WSLS") str_id = StrategyM3::WSLS().ID();
+      else if (prm.initial_condition == "TFT-ATFT") str_id = StrategyM3::TFT_ATFT().ID();
+      else if (prm.initial_condition == "CAPRI") str_id = StrategyM3::CAPRI().ID();
+      else if (prm.initial_condition == "AON2") str_id = StrategyM3::AON(2).ID();
+      else if (prm.initial_condition == "AON3") str_id = StrategyM3::AON(3).ID();
+      else { throw std::runtime_error("unknown initial condition"); }
+      for (size_t i = 0; i < prm.M; i++) {
+        species.emplace_back(str_id, prm.error_rate);
+      }
     }
     IC(species);
   };
