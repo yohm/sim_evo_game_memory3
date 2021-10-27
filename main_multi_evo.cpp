@@ -255,6 +255,8 @@ int main(int argc, char *argv[]) {
   double c_level_avg = 0.0, fr_fraction = 0.0, efficient_fraction = 0.0, defensible_fraction = 0.0;
   size_t count = 0ul;
 
+  std::ofstream tout("timeseries.dat");
+
   for (size_t t = 0; t < prm.T_max; t++) {
     eco.Update();
     if (t > prm.T_init) {
@@ -265,20 +267,29 @@ int main(int argc, char *argv[]) {
       count++;
     }
     if (t % prm.T_print == prm.T_print - 1) {
-      std::cout << t << ' ' << eco.CooperationLevel() << ' ' << eco.NumFriendlyRival()
-                << ' ' << eco.NumEfficient() << ' ' << eco.NumDefensible() << std::endl;
-      IC(t, eco.species);
+      double m_inv = 1.0 / prm.M;
+      tout << t + 1 << ' ' << eco.CooperationLevel() << ' ' << eco.NumFriendlyRival() * m_inv
+                    << ' ' << eco.NumEfficient() * m_inv << ' ' << eco.NumDefensible() * m_inv << std::endl;
+      // IC(t, eco.species);
     }
   }
+  tout.close();
 
-  nlohmann::json output;
-  output["cooperation_level"] = c_level_avg / count;
-  output["friendly_rival_fraction"] = fr_fraction / count;
-  output["efficient_fraction"] = efficient_fraction / count;
-  output["defensible_fraction"] = defensible_fraction / count;
-  std::ofstream fout("_output.json");
-  fout << output;
-  fout.close();
+  {
+    nlohmann::json output;
+    output["cooperation_level"] = c_level_avg / count;
+    output["friendly_rival_fraction"] = fr_fraction / count;
+    output["efficient_fraction"] = efficient_fraction / count;
+    output["defensible_fraction"] = defensible_fraction / count;
+    std::ofstream fout("_output.json");
+    fout << output;
+    fout.close();
+  }
+
+  {
+    icecream::ic.enable();
+    IC(eco.species);
+  }
 
   MeasureElapsed("done");
   return 0;
