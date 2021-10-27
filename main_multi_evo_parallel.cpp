@@ -12,6 +12,7 @@
 #include <chrono>
 #include <Eigen/Dense>
 #include <nlohmann/json.hpp>
+#include <omp.h>
 #include "icecream-cpp/icecream.hpp"
 #include "StrategyM3.hpp"
 #include "StrategySpace.hpp"
@@ -75,11 +76,16 @@ class MultilevelParallelEvoGame {
  public:
   MultilevelParallelEvoGame(const Parameters& _prm) :
   prm(_prm), space(prm.strategy_space[0], prm.strategy_space[1]),
-  rnd(prm._seed), sample_space(0ull, space.Max()) {
+  sample_space(0ull, space.Max()) {
+    for (uint32_t t = 0; t < omp_get_max_threads(); t++) {
+      std::seed_seq s = {static_cast<uint32_t>(prm._seed), t};
+      a_rnd.emplace_back(s);
+    }
+
     species.reserve(prm.M);
     if (prm.initial_condition == "random") {
       for (size_t i = 0; i < prm.M; i++) {
-        uint64_t id = space.ToGlobalID( sample_space(rnd));
+        uint64_t id = space.ToGlobalID( sample_space(a_rnd[0]));
         species.emplace_back(id, prm.error_rate);
       }
     }
@@ -103,7 +109,7 @@ class MultilevelParallelEvoGame {
   Parameters prm;
   StrategySpace space;
   std::vector<Species> species;
-  std::mt19937_64 rnd;
+  std::vector<std::mt19937_64> a_rnd;
   std::uniform_real_distribution<double> uni;
   std::uniform_int_distribution<uint64_t> sample_space;
 
@@ -165,8 +171,10 @@ class MultilevelParallelEvoGame {
 
   void Update() {
     std::vector<Species> species_new = species;
+    #pragma omp parallel for
     for (size_t i = 0; i < prm.M; i++) {
-      if (uni(rnd) < prm.intra_selection_prob) {
+      int th = omp_get_thread_num();
+      if (uni(a_rnd[th]) < prm.intra_selection_prob) {
         species_new[i] = IntraGroupSelection(i);
       }
       else {
@@ -177,11 +185,12 @@ class MultilevelParallelEvoGame {
   }
 
   Species IntraGroupSelection(size_t g) {
-    uint64_t mut_id = space.ToGlobalID( sample_space(rnd) );
+    const int th = omp_get_thread_num();
+    uint64_t mut_id = space.ToGlobalID( sample_space(a_rnd[th]) );
     Species mut(mut_id, prm.error_rate);
     // double mut_coop_level = CooperationLevel(mut_id);
     double f = FixationProb(mut, species[g]);
-    if (uni(rnd) < f) {
+    if (uni(a_rnd[th]) < f) {
       IC(g, species[g], mut, f);
       return mut;
     }
@@ -189,9 +198,10 @@ class MultilevelParallelEvoGame {
   }
 
   Species InterGroupSelection(size_t g1) {
-    size_t g2 = static_cast<size_t>(g1 + 1 + uni(rnd) * (prm.M-1)) % prm.M;
+    const int th = omp_get_thread_num();
+    size_t g2 = static_cast<size_t>(g1 + 1 + uni(a_rnd[th]) * (prm.M-1)) % prm.M;
     double p = SelectionProb(species[g1], species[g2]);
-    if (uni(rnd) < p) {
+    if (uni(a_rnd[th]) < p) {
       IC(species[g1], species[g2], p);
       return species[g2];
     }
@@ -234,6 +244,8 @@ class MultilevelParallelEvoGame {
 
 int main(int argc, char *argv[]) {
   icecream::ic.disable();
+  icecream::ic.prefix("[", omp_get_thread_num, "/" , omp_get_max_threads, "]: ");
+
   Eigen::initParallel();
   if( argc != 2 ) {
     std::cerr << "Error : invalid argument" << std::endl;
