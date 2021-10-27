@@ -42,5 +42,9 @@ target_link_libraries(main_evo_MPI PRIVATE scalapack)
 
 add_executable(main_multi_evo main_multi_evo.cpp ${SOURCE_FILES})
 target_link_libraries(main_evo PRIVATE Eigen3::Eigen)
+target_compile_definitions(main_evo PRIVATE EIGEN_DONT_PARALLELIZE)
+
+add_executable(main_multi_evo_parallel main_multi_evo_parallel.cpp ${SOURCE_FILES})
+target_link_libraries(main_evo PRIVATE Eigen3::Eigen)
 target_link_libraries(main_evo PRIVATE OpenMP::OpenMP_CXX)
 target_compile_definitions(main_evo PRIVATE EIGEN_DONT_PARALLELIZE)
