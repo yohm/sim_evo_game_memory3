@@ -8,7 +8,7 @@
   "error_rate": 0.001,
   "sigma": 10.0,
   "sigma_g": 10.0,
-  "intra_selection_prob": 0.5,
+  "p_intra": 0.5,
   "strategy_space": [3, 3],
   "initial_condition": "random",
   "_seed": 1234567890

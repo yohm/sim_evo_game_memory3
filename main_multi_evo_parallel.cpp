@@ -40,13 +40,13 @@ class Parameters {
   double benefit;
   double error_rate;
   double sigma, sigma_g;
-  double intra_selection_prob;
+  double p_intra;
   std::array<size_t,2> strategy_space;
   std::string initial_condition; // "random", "TFT", "WSLS", "TFT-ATFT", "CAPRI"
   uint64_t _seed;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(Parameters, T_max, T_print, T_init,
-                                 M, N, benefit, error_rate, sigma, sigma_g, intra_selection_prob, strategy_space,
+                                 M, N, benefit, error_rate, sigma, sigma_g, p_intra, strategy_space,
                                  initial_condition, _seed);
 };
 
@@ -174,7 +174,7 @@ class MultilevelParallelEvoGame {
     #pragma omp parallel for
     for (size_t i = 0; i < prm.M; i++) {
       int th = omp_get_thread_num();
-      if (uni(a_rnd[th]) < prm.intra_selection_prob) {
+      if (uni(a_rnd[th]) < prm.p_intra) {
         species_new[i] = IntraGroupSelection(i);
       }
       else {
@@ -190,8 +190,8 @@ class MultilevelParallelEvoGame {
     Species mut(mut_id, prm.error_rate);
     // double mut_coop_level = CooperationLevel(mut_id);
     double f = FixationProb(mut, species[g]);
+    IC(g, species[g], mut, f);
     if (uni(a_rnd[th]) < f) {
-      IC(g, species[g], mut, f);
       return mut;
     }
     return species[g];
@@ -201,8 +201,8 @@ class MultilevelParallelEvoGame {
     const int th = omp_get_thread_num();
     size_t g2 = static_cast<size_t>(g1 + 1 + uni(a_rnd[th]) * (prm.M-1)) % prm.M;
     double p = SelectionProb(species[g1], species[g2]);
+    IC(species[g1], species[g2], p);
     if (uni(a_rnd[th]) < p) {
-      IC(species[g1], species[g2], p);
       return species[g2];
     }
     return species[g1];
