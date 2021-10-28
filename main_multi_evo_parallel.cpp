@@ -69,6 +69,8 @@ class Species {
   double cooperation_level;
   double is_efficient;
   double is_defensible;
+
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(Species, strategy_id, cooperation_level, is_efficient, is_defensible);
 };
 
 
@@ -243,7 +245,9 @@ class MultilevelParallelEvoGame {
 
 
 int main(int argc, char *argv[]) {
+  #if defined(NDEBUG)
   icecream::ic.disable();
+  #endif
   icecream::ic.prefix("[", omp_get_thread_num, "/" , omp_get_max_threads, "]: ");
 
   Eigen::initParallel();
@@ -302,8 +306,13 @@ int main(int argc, char *argv[]) {
   }
 
   {
-    icecream::ic.enable();
-    IC(eco.species);
+    nlohmann::json j;
+    for (const Species& s: eco.species) {
+      j.emplace_back(s);
+    }
+    std::ofstream fout("final_state.json");
+    fout << j.dump(2);
+    fout.close();
   }
 
   MeasureElapsed("done");
