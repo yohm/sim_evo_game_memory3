@@ -29,6 +29,15 @@ void StrategyM3::Inspect(std::ostream& out) const {
       << "IsDefensible: " << IsDefensible() << "\n"
       << "IsDefenisbleDFA: " << IsDefensibleDFA() << "\n"
       << "IsDistinguishable: " << IsDistinguishableTopo() << "\n";
+  std::vector<int> path1 = {1};
+  while (true) {
+    int next = NextITGState( *path1.rbegin() );
+    if (std::find(path1.begin(), path1.end(), next) != path1.end()) break;
+    path1.push_back(next);
+  }
+  out << "Path in g(S,S) from (ccc,ccd): ";
+  for (int n: path1) { out << StateM3(n) << " -> "; }
+  out << "\n";
   auto p0 = MinimizeDFAHopcroft(false), p1 = MinimizeDFAHopcroft(true);
   out << "DFT minimized states: (" << p0.size() << " / " << p1.size() << ")\n";
   out << "--- automaton without noise:\n" << p0
