@@ -10,6 +10,7 @@
 #include <cassert>
 #include <fstream>
 #include <chrono>
+#include <regex>
 #include <Eigen/Dense>
 #include <nlohmann/json.hpp>
 #include <omp.h>
@@ -101,6 +102,9 @@ class MultilevelParallelEvoGame {
       else if (prm.initial_condition == "CAPRI") str_id = StrategyM3::CAPRI().ID();
       else if (prm.initial_condition == "AON2") str_id = StrategyM3::AON(2).ID();
       else if (prm.initial_condition == "AON3") str_id = StrategyM3::AON(3).ID();
+      else if (std::regex_match(prm.initial_condition, std::regex(R"(\d+)")) ){
+        str_id = std::stoull(prm.initial_condition);
+      }
       else { throw std::runtime_error("unknown initial condition"); }
       for (size_t i = 0; i < prm.M; i++) {
         species.emplace_back(str_id, prm.error_rate);
