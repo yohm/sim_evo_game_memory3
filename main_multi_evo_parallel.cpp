@@ -241,6 +241,13 @@ class MultilevelParallelEvoGame {
     }
     return count;
   }
+
+  bool HasSpecies(uint64_t species_id) const {
+    for (const Species& s: species) {
+      if (s.strategy_id == species_id) return true;
+    }
+    return false;
+  }
 };
 
 
@@ -269,6 +276,14 @@ int main(int argc, char *argv[]) {
 
   MultilevelParallelEvoGame eco(prm);
 
+  uint64_t initial_species_id;
+  bool is_measuring_lifetime = false;
+  int64_t lifetime = -1;
+  if (prm.initial_condition != "random") {
+    initial_species_id = eco.species.at(0).strategy_id;
+    is_measuring_lifetime = true;
+  }
+
   MeasureElapsed("simulation");
 
   double c_level_avg = 0.0, fr_fraction = 0.0, efficient_fraction = 0.0, defensible_fraction = 0.0;
@@ -278,6 +293,15 @@ int main(int argc, char *argv[]) {
 
   for (size_t t = 0; t < prm.T_max; t++) {
     eco.Update();
+    if (is_measuring_lifetime) {
+      if (!eco.HasSpecies(initial_species_id)) {
+        lifetime = t;
+        is_measuring_lifetime = false;
+      }
+      else {
+        lifetime = t+1;
+      }
+    }
     if (t > prm.T_init) {
       c_level_avg += eco.CooperationLevel();
       fr_fraction += (double)eco.NumFriendlyRival() / prm.M;
@@ -300,8 +324,9 @@ int main(int argc, char *argv[]) {
     output["friendly_rival_fraction"] = fr_fraction / count;
     output["efficient_fraction"] = efficient_fraction / count;
     output["defensible_fraction"] = defensible_fraction / count;
+    output["lifetime_init_species"] = lifetime;
     std::ofstream fout("_output.json");
-    fout << output;
+    fout << output.dump(2);
     fout.close();
   }
 
