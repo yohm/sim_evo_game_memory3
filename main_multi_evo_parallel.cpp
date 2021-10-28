@@ -248,6 +248,21 @@ class MultilevelParallelEvoGame {
     }
     return false;
   }
+
+  double Diversity() const {
+    // exponential Shannon entropy
+    std::map<uint64_t,double> freq;
+    for (const Species& s: species) {
+      if (freq.find(s.strategy_id) == freq.end()) { freq[s.strategy_id] = 0.0; }
+      freq[s.strategy_id] += 1.0;
+    }
+    double entropy = 0.0;
+    for (auto pair: freq) {
+      double p = pair.second / prm.M;
+      entropy += -p * std::log(p);
+    }
+    return std::exp(entropy);
+  }
 };
 
 
@@ -287,6 +302,7 @@ int main(int argc, char *argv[]) {
   MeasureElapsed("simulation");
 
   double c_level_avg = 0.0, fr_fraction = 0.0, efficient_fraction = 0.0, defensible_fraction = 0.0;
+  double avg_diversity = 0.0;
   size_t count = 0ul;
 
   std::ofstream tout("timeseries.dat");
@@ -307,12 +323,14 @@ int main(int argc, char *argv[]) {
       fr_fraction += (double)eco.NumFriendlyRival() / prm.M;
       efficient_fraction += (double)eco.NumEfficient() / prm.M;
       defensible_fraction += (double)eco.NumDefensible() / prm.M;
+      avg_diversity += eco.Diversity() / prm.M;
       count++;
     }
     if (t % prm.T_print == prm.T_print - 1) {
       double m_inv = 1.0 / prm.M;
       tout << t + 1 << ' ' << eco.CooperationLevel() << ' ' << eco.NumFriendlyRival() * m_inv
-                    << ' ' << eco.NumEfficient() * m_inv << ' ' << eco.NumDefensible() * m_inv << std::endl;
+                    << ' ' << eco.NumEfficient() * m_inv << ' ' << eco.NumDefensible() * m_inv
+                    << ' ' << eco.Diversity() * m_inv << std::endl;
       // IC(t, eco.species);
     }
   }
@@ -324,6 +342,7 @@ int main(int argc, char *argv[]) {
     output["friendly_rival_fraction"] = fr_fraction / count;
     output["efficient_fraction"] = efficient_fraction / count;
     output["defensible_fraction"] = defensible_fraction / count;
+    output["diversity"] = avg_diversity / count;
     output["lifetime_init_species"] = lifetime;
     std::ofstream fout("_output.json");
     fout << output.dump(2);
