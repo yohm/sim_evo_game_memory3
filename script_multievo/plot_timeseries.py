@@ -36,6 +36,7 @@ plt.plot(dat[:,0]/xscale, dat[:,1], '.-', label='cooperation level')
 plt.plot(dat[:,0]/xscale, dat[:,2], '.-', label='friendly rival')
 plt.plot(dat[:,0]/xscale, dat[:,3], '.-', label='efficient')
 plt.plot(dat[:,0]/xscale, dat[:,4], '.-', label='rival')
+plt.plot(dat[:,0]/xscale, dat[:,5], '.-', label='diversity')
 plt.legend()
 # %%
 plt.savefig("timeseries.png")
