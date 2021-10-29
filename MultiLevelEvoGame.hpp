@@ -68,8 +68,7 @@ class MultiLevelEvoGame {
   };
 
   MultiLevelEvoGame(const Parameters& _prm) :
-    prm(_prm), space(prm.strategy_space[0], prm.strategy_space[1]),
-    sample_space(0ull, space.Max()) {
+    prm(_prm), space(prm.strategy_space[0], prm.strategy_space[1]) {
     for (uint32_t t = 0; t < omp_get_max_threads(); t++) {
       std::seed_seq s = {static_cast<uint32_t>(prm._seed), t};
       a_rnd.emplace_back(s);
@@ -78,7 +77,7 @@ class MultiLevelEvoGame {
     species.reserve(prm.M);
     if (prm.initial_condition == "random") {
       for (size_t i = 0; i < prm.M; i++) {
-        uint64_t id = space.ToGlobalID( sample_space(a_rnd[0]));
+        uint64_t id = SampleStrategySpace();
         species.emplace_back(id, prm.error_rate);
       }
     }
@@ -100,14 +99,12 @@ class MultiLevelEvoGame {
         species.emplace_back(str_id, prm.error_rate);
       }
     }
-    IC(species);
   };
   Parameters prm;
   StrategySpace space;
   std::vector<Species> species;
   std::vector<std::mt19937_64> a_rnd;
   std::uniform_real_distribution<double> uni;
-  std::uniform_int_distribution<uint64_t> sample_space;
 
   // payoff of species i and j when the game is played by (i,j)
   std::array<double,2> Payoffs(uint64_t strategy_i, uint64_t strategy_j) const {
@@ -165,9 +162,15 @@ class MultiLevelEvoGame {
     return 1.0 / (1.0 + std::exp( prm.sigma_g * (pi - pj) ));
   }
 
+  uint64_t SampleStrategySpace() {
+    const int th = omp_get_thread_num();
+    std::uniform_int_distribution<uint64_t> sample_space(0ull, space.Max());
+    return space.ToGlobalID( sample_space(a_rnd[th]));
+  }
+
   void Update() {
     std::vector<Species> species_new = species;
-#pragma omp parallel for
+    #pragma omp parallel for
     for (size_t i = 0; i < prm.M; i++) {
       int th = omp_get_thread_num();
       if (uni(a_rnd[th]) < prm.p_intra) {
@@ -182,7 +185,7 @@ class MultiLevelEvoGame {
 
   Species IntraGroupSelection(size_t g) {
     const int th = omp_get_thread_num();
-    uint64_t mut_id = space.ToGlobalID( sample_space(a_rnd[th]) );
+    uint64_t mut_id = SampleStrategySpace();
     Species mut(mut_id, prm.error_rate);
     // double mut_coop_level = CooperationLevel(mut_id);
     double f = FixationProb(mut, species[g]);
