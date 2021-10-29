@@ -1,6 +1,9 @@
 //
-// Created by Yohsuke Murase on 2021/10/25.
+// Created by Yohsuke Murase on 2021/10/29.
 //
+
+#ifndef CPP_MULTILEVELEVOGAME_HPP
+#define CPP_MULTILEVELEVOGAME_HPP
 
 #include <iostream>
 #include <vector>
@@ -10,76 +13,72 @@
 #include <cassert>
 #include <fstream>
 #include <chrono>
+#include <regex>
 #include <Eigen/Dense>
 #include <nlohmann/json.hpp>
+#include <omp.h>
 #include "icecream-cpp/icecream.hpp"
 #include "StrategyM3.hpp"
 #include "StrategySpace.hpp"
 
 
-std::string prev_key;
-std::chrono::system_clock::time_point start;
-void MeasureElapsed(const std::string& key) {
-  std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
-  if (!prev_key.empty()) {
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
-    std::cerr << "T " << prev_key << " finished in " << elapsed << " ms" << std::endl;
-  }
-  start = end;
-  prev_key = key;
-}
-
-class Parameters {
+class MultiLevelEvoGame {
   public:
-  Parameters() { };
-  size_t T_max;
-  size_t T_print;  // output interval
-  size_t T_init;   // initial period
-  size_t M, N;
-  double benefit;
-  double error_rate;
-  double sigma, sigma_g;
-  double T_g;
-  std::array<size_t,2> strategy_space;
-  std::string initial_condition; // "random", "TFT", "WSLS", "TFT-ATFT", "CAPRI"
-  uint64_t _seed;
+  class Parameters {
+    public:
+    Parameters() { };
+    size_t T_max;
+    size_t T_print;  // output interval
+    size_t T_init;   // initial period
+    size_t M, N;
+    double benefit;
+    double error_rate;
+    double sigma, sigma_g;
+    double p_intra;
+    std::array<size_t,2> strategy_space;
+    std::string initial_condition; // "random", "TFT", "WSLS", "TFT-ATFT", "CAPRI"
+    uint64_t _seed;
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(Parameters, T_max, T_print, T_init,
-                                 M, N, benefit, error_rate, sigma, sigma_g, T_g, strategy_space,
-                                 initial_condition, _seed);
-};
-
-
-class Species {
-  public:
-  explicit Species(uint64_t _strategy_id, double e) : strategy_id(_strategy_id) {
-    StrategyM3 strategy(strategy_id);
-    auto p = strategy.StationaryState(e);
-    double c = 0.0;
-    for (size_t n = 0; n < 64; n++) {
-      StateM3 state(n);
-      if (state.a_1 == C) { c += p[n]; }
-    }
-    cooperation_level = c;
-    is_efficient = strategy.IsEfficientTopo();
-    is_defensible = strategy.IsDefensible();
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Parameters, T_max, T_print, T_init,
+      M, N, benefit, error_rate, sigma, sigma_g, p_intra, strategy_space,
+      initial_condition, _seed);
   };
-  uint64_t strategy_id;
-  double cooperation_level;
-  double is_efficient;
-  double is_defensible;
-};
 
 
-class MultilevelEvoGame {
- public:
-  MultilevelEvoGame(const Parameters& _prm) :
-  prm(_prm), space(prm.strategy_space[0], prm.strategy_space[1]),
-  rnd(prm._seed), sample_space(0ull, space.Max()) {
+  class Species {
+    public:
+    explicit Species(uint64_t _strategy_id, double e) : strategy_id(_strategy_id) {
+      StrategyM3 strategy(strategy_id);
+      auto p = strategy.StationaryState(e);
+      double c = 0.0;
+      for (size_t n = 0; n < 64; n++) {
+        StateM3 state(n);
+        if (state.a_1 == C) { c += p[n]; }
+      }
+      cooperation_level = c;
+      is_efficient = strategy.IsEfficientTopo();
+      is_defensible = strategy.IsDefensible();
+    };
+    uint64_t strategy_id;
+    double cooperation_level;
+    double is_efficient;
+    double is_defensible;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Species, strategy_id, cooperation_level, is_efficient, is_defensible);
+  };
+
+  MultiLevelEvoGame(const Parameters& _prm) :
+    prm(_prm), space(prm.strategy_space[0], prm.strategy_space[1]),
+    sample_space(0ull, space.Max()) {
+    for (uint32_t t = 0; t < omp_get_max_threads(); t++) {
+      std::seed_seq s = {static_cast<uint32_t>(prm._seed), t};
+      a_rnd.emplace_back(s);
+    }
+
     species.reserve(prm.M);
     if (prm.initial_condition == "random") {
       for (size_t i = 0; i < prm.M; i++) {
-        uint64_t id = space.ToGlobalID( sample_space(rnd));
+        uint64_t id = space.ToGlobalID( sample_space(a_rnd[0]));
         species.emplace_back(id, prm.error_rate);
       }
     }
@@ -93,6 +92,9 @@ class MultilevelEvoGame {
       else if (prm.initial_condition == "CAPRI") str_id = StrategyM3::CAPRI().ID();
       else if (prm.initial_condition == "AON2") str_id = StrategyM3::AON(2).ID();
       else if (prm.initial_condition == "AON3") str_id = StrategyM3::AON(3).ID();
+      else if (std::regex_match(prm.initial_condition, std::regex(R"(\d+)")) ){
+        str_id = std::stoull(prm.initial_condition);
+      }
       else { throw std::runtime_error("unknown initial condition"); }
       for (size_t i = 0; i < prm.M; i++) {
         species.emplace_back(str_id, prm.error_rate);
@@ -103,7 +105,7 @@ class MultilevelEvoGame {
   Parameters prm;
   StrategySpace space;
   std::vector<Species> species;
-  std::mt19937_64 rnd;
+  std::vector<std::mt19937_64> a_rnd;
   std::uniform_real_distribution<double> uni;
   std::uniform_int_distribution<uint64_t> sample_space;
 
@@ -146,10 +148,10 @@ class MultilevelEvoGame {
     double rho_inv = 0.0;
     for (int i=0; i < N; i++) {
       double x = sigma * i * 0.5 * (
-            (double)(2*N-3-i) * s_yy
-          + (double)(i+1) * s_yx
-          - (double)(2*N-1-i) * s_xy
-          - (double)(i-1) * s_xx
+        (double)(2*N-3-i) * s_yy
+        + (double)(i+1) * s_yx
+        - (double)(2*N-1-i) * s_xy
+        - (double)(i-1) * s_xx
       );
       rho_inv += std::exp(x);
     }
@@ -164,35 +166,45 @@ class MultilevelEvoGame {
   }
 
   void Update() {
-    double intra = prm.T_g / (1.0 + prm.T_g);  // probability of intra-group selection
-    if (uni(rnd) < intra) {
-      IntraGroupSelection();
+    std::vector<Species> species_new = species;
+#pragma omp parallel for
+    for (size_t i = 0; i < prm.M; i++) {
+      int th = omp_get_thread_num();
+      if (uni(a_rnd[th]) < prm.p_intra) {
+        species_new[i] = IntraGroupSelection(i);
+      }
+      else {
+        species_new[i] = InterGroupSelection(i);
+      }
     }
-    else {
-      InterGroupSelection();
-    }
+    species = species_new;
   }
 
-  void IntraGroupSelection() {
-    size_t g = uni(rnd) * prm.M;
-    uint64_t mut_id = space.ToGlobalID( sample_space(rnd) );
+  Species IntraGroupSelection(size_t g) {
+    const int th = omp_get_thread_num();
+    uint64_t mut_id = space.ToGlobalID( sample_space(a_rnd[th]) );
     Species mut(mut_id, prm.error_rate);
     // double mut_coop_level = CooperationLevel(mut_id);
     double f = FixationProb(mut, species[g]);
-    if (uni(rnd) < f) {
-      IC(g, species[g], mut, f);
-      species[g] = mut;
+    IC(g, species[g], mut, f);
+    if (uni(a_rnd[th]) < f) {
+      return mut;
     }
+    return species[g];
   }
 
-  void InterGroupSelection() {
-    size_t g1 = uni(rnd) * prm.M;
-    size_t g2 = static_cast<size_t>(g1 + 1 + uni(rnd) * (prm.M-1)) % prm.M;
+  Species InterGroupSelection(size_t g1) {
+    const int th = omp_get_thread_num();
+    size_t g2 = static_cast<size_t>(g1 + 1 + uni(a_rnd[th]) * (prm.M-1)) % prm.M;
     double p = SelectionProb(species[g1], species[g2]);
-    if (uni(rnd) < p) {
-      IC(species[g1], species[g2], p);
-      species[g1] = species[g2];
+    IC(species[g1], species[g2], p);
+    if (uni(a_rnd[th]) < p) {
+      double f = FixationProb(species[g2], species[g1]);
+      if (uni(a_rnd[th]) < f) {
+        return species[g2];
+      }
     }
+    return species[g1];
   }
 
   double CooperationLevel() const {
@@ -226,71 +238,29 @@ class MultilevelEvoGame {
     }
     return count;
   }
+
+  bool HasSpecies(uint64_t species_id) const {
+    for (const Species& s: species) {
+      if (s.strategy_id == species_id) return true;
+    }
+    return false;
+  }
+
+  double Diversity() const {
+    // exponential Shannon entropy
+    std::map<uint64_t,double> freq;
+    for (const Species& s: species) {
+      if (freq.find(s.strategy_id) == freq.end()) { freq[s.strategy_id] = 0.0; }
+      freq[s.strategy_id] += 1.0;
+    }
+    double entropy = 0.0;
+    for (auto pair: freq) {
+      double p = pair.second / prm.M;
+      entropy += -p * std::log(p);
+    }
+    return std::exp(entropy);
+  }
 };
 
 
-int main(int argc, char *argv[]) {
-  icecream::ic.disable();
-  Eigen::initParallel();
-  if( argc != 2 ) {
-    std::cerr << "Error : invalid argument" << std::endl;
-    std::cerr << "  Usage : " << argv[0] << " <parameter_json_file>" << std::endl;
-    return 1;
-  }
-
-  Parameters prm;
-  {
-    std::ifstream fin(argv[1]);
-    nlohmann::json input;
-    fin >> input;
-    prm = input.get<Parameters>();
-  }
-
-  MeasureElapsed("initialize");
-
-  MultilevelEvoGame eco(prm);
-
-  MeasureElapsed("simulation");
-
-  double c_level_avg = 0.0, fr_fraction = 0.0, efficient_fraction = 0.0, defensible_fraction = 0.0;
-  size_t count = 0ul;
-
-  std::ofstream tout("timeseries.dat");
-
-  for (size_t t = 0; t < prm.T_max; t++) {
-    eco.Update();
-    if (t > prm.T_init) {
-      c_level_avg += eco.CooperationLevel();
-      fr_fraction += (double)eco.NumFriendlyRival() / prm.M;
-      efficient_fraction += (double)eco.NumEfficient() / prm.M;
-      defensible_fraction += (double)eco.NumDefensible() / prm.M;
-      count++;
-    }
-    if (t % prm.T_print == prm.T_print - 1) {
-      double m_inv = 1.0 / prm.M;
-      tout << t + 1 << ' ' << eco.CooperationLevel() << ' ' << eco.NumFriendlyRival() * m_inv
-                    << ' ' << eco.NumEfficient() * m_inv << ' ' << eco.NumDefensible() * m_inv << std::endl;
-      // IC(t, eco.species);
-    }
-  }
-  tout.close();
-
-  {
-    nlohmann::json output;
-    output["cooperation_level"] = c_level_avg / count;
-    output["friendly_rival_fraction"] = fr_fraction / count;
-    output["efficient_fraction"] = efficient_fraction / count;
-    output["defensible_fraction"] = defensible_fraction / count;
-    std::ofstream fout("_output.json");
-    fout << output;
-    fout.close();
-  }
-
-  {
-    icecream::ic.enable();
-    IC(eco.species);
-  }
-
-  MeasureElapsed("done");
-  return 0;
-}
+#endif //CPP_MULTILEVELEVOGAME_HPP
