@@ -77,7 +77,7 @@ class MultiLevelEvoGame {
     species.reserve(prm.M);
     if (prm.initial_condition == "random") {
       for (size_t i = 0; i < prm.M; i++) {
-        uint64_t id = SampleStrategySpace();
+        uint64_t id = WeightedSampleStrategySpace();
         species.emplace_back(id, prm.error_rate);
       }
     }
@@ -162,10 +162,20 @@ class MultiLevelEvoGame {
     return 1.0 / (1.0 + std::exp( prm.sigma_g * (pi - pj) ));
   }
 
-  uint64_t SampleStrategySpace() {
+  uint64_t UniformSampleStrategySpace() {
     const int th = omp_get_thread_num();
-    std::uniform_int_distribution<uint64_t> sample_space(0ull, space.Max());
-    return space.ToGlobalID( sample_space(a_rnd[th]));
+    std::uniform_int_distribution<uint64_t> sample(0ull, space.Max());
+    return space.ToGlobalID( sample(a_rnd[th]));
+  }
+
+  uint64_t WeightedSampleStrategySpace() {
+    const int th = omp_get_thread_num();
+    size_t num_spaces = (space.mem[0]+1) * (space.mem[1]+1);
+    size_t mi = static_cast<size_t>( uni(a_rnd[th]) * num_spaces );
+    size_t m1 = mi % (space.mem[0]+1), m2 = mi / (space.mem[0]+1);
+    StrategySpace ss(m1, m2);
+    std::uniform_int_distribution<uint64_t> sample(0ull, ss.Max());
+    return ss.ToGlobalID( sample(a_rnd[th]));
   }
 
   void Update() {
@@ -185,7 +195,7 @@ class MultiLevelEvoGame {
 
   Species IntraGroupSelection(size_t g) {
     const int th = omp_get_thread_num();
-    uint64_t mut_id = SampleStrategySpace();
+    uint64_t mut_id = WeightedSampleStrategySpace();
     Species mut(mut_id, prm.error_rate);
     // double mut_coop_level = CooperationLevel(mut_id);
     double f = FixationProb(mut, species[g]);

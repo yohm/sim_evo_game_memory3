@@ -76,7 +76,7 @@ V GetWithDef(const C<K,V,Args...>& m, K const& key, const V & defval) {
 void test_AON3() {
   auto prm = DefaultTestParameters();
   prm.N = 3;
-  prm.benefit = 2.0;
+  prm.benefit = 1.2;
   prm.strategy_space = {2, 2};
   MultiLevelEvoGame eco(prm);
 
@@ -87,7 +87,8 @@ void test_AON3() {
     std::map<double,int> histo;
     double avg = 0.0;
     for (size_t i = 0; i < 1000; i++) {
-      uint64_t mut_id = eco.SampleStrategySpace();
+      uint64_t mut_id = eco.WeightedSampleStrategySpace();
+      // uint64_t mut_id = eco.UniformSampleStrategySpace();
       MultiLevelEvoGame::Species mut(mut_id, eco.prm.error_rate);
       double f = eco.FixationProb(mut, resident);
       avg += f;
