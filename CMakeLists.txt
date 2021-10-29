@@ -40,6 +40,11 @@ target_compile_definitions(main_evo_MPI PRIVATE EIGEN_DONT_PARALLELIZE)
 target_link_libraries(main_evo_MPI PRIVATE MPI::MPI_CXX)
 target_link_libraries(main_evo_MPI PRIVATE scalapack)
 
+add_executable(test_MultiLevelEvoGame test_MultiLevelEvoGame.cpp MultiLevelEvoGame.hpp ${SOURCE_FILES})
+target_link_libraries(test_MultiLevelEvoGame PRIVATE Eigen3::Eigen)
+target_compile_definitions(test_MultiLevelEvoGame PRIVATE EIGEN_DONT_PARALLELIZE)
+target_link_libraries(test_MultiLevelEvoGame PRIVATE OpenMP::OpenMP_CXX)
+
 add_executable(main_multi_evo_parallel main_multi_evo_parallel.cpp ${SOURCE_FILES} MultiLevelEvoGame.hpp)
 target_link_libraries(main_multi_evo_parallel PRIVATE Eigen3::Eigen)
 target_link_libraries(main_multi_evo_parallel PRIVATE OpenMP::OpenMP_CXX)
