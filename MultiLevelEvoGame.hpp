@@ -202,10 +202,7 @@ class MultiLevelEvoGame {
     double p = SelectionProb(species[g1], species[g2]);
     IC(species[g1], species[g2], p);
     if (uni(a_rnd[th]) < p) {
-      double f = FixationProb(species[g2], species[g1]);
-      if (uni(a_rnd[th]) < f) {
-        return species[g2];
-      }
+      return species[g2];
     }
     return species[g1];
   }
