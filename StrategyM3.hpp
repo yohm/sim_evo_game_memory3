@@ -126,6 +126,7 @@ class StrategyM3 {
   Action ActionAt(const StateM3 &s) const { return actions[s.ID()]; }
   void SetAction(const StateM3 &s, Action a) { actions[s.ID()] = a; }
   bool IsDefensible() const;  // check defensibility.
+  std::vector<std::vector<size_t>> ShortestNegativeCycles() const;
   bool IsDefensibleDFA() const; // check defensibility using DFA minimization
   // get stationary state. When coplayer is nullptr, it is set to self
   std::array<double, 64> StationaryState(double e = 0.0001, const StrategyM3 *coplayer = nullptr) const;

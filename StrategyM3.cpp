@@ -25,19 +25,46 @@ void StrategyM3::Inspect(std::ostream& out) const {
     out << StateM3(i) << "| " << actions[i] << "    ";
     if (i % 8 == 7) out << "\n";
   }
-  out << "IsEfficient: " << IsEfficientTopo() << "\n"
-      << "IsDefensible: " << IsDefensible() << "\n"
+  bool is_efficient = IsEfficientTopo();
+  bool is_defensible = IsDefensible();
+  out << "IsEfficientTopo: " << is_efficient << "\n"
+      << "IsEfficient: " << IsEfficient() << "\n"
+      << "IsDefensible: " << is_defensible << "\n"
       << "IsDefenisbleDFA: " << IsDefensibleDFA() << "\n"
       << "IsDistinguishable: " << IsDistinguishableTopo() << "\n";
-  std::vector<int> path1 = {1};
-  while (true) {
-    int next = NextITGState( *path1.rbegin() );
-    if (std::find(path1.begin(), path1.end(), next) != path1.end()) break;
-    path1.push_back(next);
+  if (is_efficient) {
+    std::vector<int> path1 = {1};
+    while (true) {
+      int next = NextITGState( *path1.rbegin() );
+      if (std::find(path1.begin(), path1.end(), next) != path1.end()) break;
+      path1.push_back(next);
+    }
+    out << "Path in g(S,S) from (ccc,ccd): ";
+    for (int n: path1) { out << StateM3(n) << " -> "; }
+    out << "\n";
+
+    std::vector<int> path62 = {62};
+    while (true) {
+      int next = NextITGState( *path62.rbegin() );
+      if (std::find(path62.begin(), path62.end(), next) != path62.end()) break;
+      path62.push_back(next);
+    }
+    out << "Path in g(S,S) from (ddd,ddc): ";
+    for (int n: path62) { out << StateM3(n) << " -> "; }
+    out << "\n";
   }
-  out << "Path in g(S,S) from (ccc,ccd): ";
-  for (int n: path1) { out << StateM3(n) << " -> "; }
-  out << "\n";
+  if (!is_defensible) {
+    auto n_cycles = ShortestNegativeCycles();
+    out << "Shortest negative cycles in g(S):\n";
+    for (auto cycle: n_cycles) {
+      out << "  ";
+      for (size_t n: cycle) {
+        out << StateM3(n) << ' ';
+      }
+      out << "\n";
+    }
+    out << "\n";
+  }
   auto p0 = MinimizeDFAHopcroft(false), p1 = MinimizeDFAHopcroft(true);
   out << "DFT minimized states: (" << p0.size() << " / " << p1.size() << ")\n";
   out << "--- automaton without noise:\n" << p0
@@ -103,6 +130,57 @@ bool StrategyM3::IsDefensible() const {
     }
   }
   return true;
+}
+
+std::vector<std::vector<size_t>> StrategyM3::ShortestNegativeCycles() const {
+  const size_t N = 64;
+  std::vector<std::map<size_t,int>> links(N);
+  std::vector<size_t> starts;
+  // construct adjacency matrix
+  for (size_t i = 0; i < N; i++) {
+    StateM3 si(i);
+    std::vector<StateM3> sjs = NextPossibleStates(si);
+    for (auto sj: sjs) {
+      size_t j = sj.ID();
+      links[i][j] = si.RelativePayoff();
+      starts.push_back(i);
+    }
+  }
+
+  struct path_t {
+    std::vector<size_t> p;
+    int weight;
+    path_t(size_t start) : weight(0) { p.push_back(start); };
+  };
+  std::vector<path_t> paths;
+  for (size_t s: starts) { paths.push_back(s); }
+  std::vector<path_t> negative_cycles;
+
+  for (int d = 0; d < 10; d++) {
+    std::vector<path_t> new_paths;
+    for (path_t& path: paths) {
+      size_t last = path.p[path.p.size()-1];
+      for (const auto pair: links[last]) {
+        path_t new_path = path;
+        new_path.p.push_back(pair.first);
+        new_path.weight += pair.second;
+        if (new_path.p[0] == pair.first && new_path.weight < 0) {  //negative cycle found
+          negative_cycles.push_back(new_path);
+        }
+        else {
+          new_paths.push_back(new_path);
+        }
+      }
+    }
+    if (!negative_cycles.empty()) break;
+    paths = new_paths;
+  }
+
+  std::vector<std::vector<size_t>> ans;
+  for (path_t& c: negative_cycles) {
+    ans.emplace_back(c.p);
+  }
+  return ans;
 }
 
 bool StrategyM3::IsDefensibleDFA() const {
