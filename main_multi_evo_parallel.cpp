@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
   MeasureElapsed("simulation");
 
   double c_level_avg = 0.0, fr_fraction = 0.0, efficient_fraction = 0.0, defensible_fraction = 0.0;
-  double avg_diversity = 0.0;
+  double avg_diversity = 0.0, avg_mem_0 = 0.0, avg_mem_1 = 0.0;
   size_t count = 0ul;
 
   std::ofstream tout("timeseries.dat");
@@ -82,13 +82,18 @@ int main(int argc, char *argv[]) {
       efficient_fraction += (double)eco.NumEfficient() / prm.M;
       defensible_fraction += (double)eco.NumDefensible() / prm.M;
       avg_diversity += eco.Diversity() / prm.M;
+      auto mem = eco.AverageMemLengths();
+      avg_mem_0 += mem[0];
+      avg_mem_1 += mem[1];
       count++;
     }
     if (t % prm.T_print == prm.T_print - 1) {
       double m_inv = 1.0 / prm.M;
+      auto mem = eco.AverageMemLengths();
       tout << t + 1 << ' ' << eco.CooperationLevel() << ' ' << eco.NumFriendlyRival() * m_inv
                     << ' ' << eco.NumEfficient() * m_inv << ' ' << eco.NumDefensible() * m_inv
-                    << ' ' << eco.Diversity() * m_inv << std::endl;
+                    << ' ' << eco.Diversity() * m_inv
+                    << ' ' << mem[0] << ' ' << mem[1] << std::endl;
       // IC(t, eco.species);
     }
   }
@@ -101,6 +106,8 @@ int main(int argc, char *argv[]) {
     output["efficient_fraction"] = efficient_fraction / count;
     output["defensible_fraction"] = defensible_fraction / count;
     output["diversity"] = avg_diversity / count;
+    output["mem_length_self"] = avg_mem_0 / count;
+    output["mem_length_opponent"] = avg_mem_1 / count;
     output["lifetime_init_species"] = lifetime;
     std::ofstream fout("_output.json");
     fout << output.dump(2);

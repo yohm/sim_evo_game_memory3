@@ -41,3 +41,16 @@ plt.legend()
 # %%
 plt.savefig("timeseries.png")
 # %%
+plt.clf()
+
+digit = (np.floor(np.log10(dat[-1,0])) // 3 * 3)
+xscale = 10**digit
+
+plt.ylim((0,3.0))
+plt.xlabel( r'time ($\times 10^{' + f"{digit:.0f}" + r'}$)')
+plt.ylabel(r'memory length')
+plt.plot(dat[:,0]/xscale, dat[:,6], '.-', label=r'$m_1$')
+plt.plot(dat[:,0]/xscale, dat[:,7], '.-', label=r'$m_2$')
+plt.legend()
+# %%
+plt.savefig("memory_lengths.png")

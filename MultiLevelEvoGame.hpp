@@ -58,11 +58,13 @@ class MultiLevelEvoGame {
       cooperation_level = c;
       is_efficient = strategy.IsEfficientTopo();
       is_defensible = strategy.IsDefensible();
+      mem_lengths = StrategySpace::MemLengths(_strategy_id);
     };
     uint64_t strategy_id;
     double cooperation_level;
     double is_efficient;
     double is_defensible;
+    StrategySpace::mem_t mem_lengths;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Species, strategy_id, cooperation_level, is_efficient, is_defensible);
   };
@@ -271,6 +273,17 @@ class MultiLevelEvoGame {
       entropy += -p * std::log(p);
     }
     return std::exp(entropy);
+  }
+
+  std::array<double,2> AverageMemLengths() const {
+    std::array<double, 2> ans = {0.0, 0.0};
+    for (const Species& s: species) {
+      ans[0] += static_cast<double>(s.mem_lengths[0]);
+      ans[1] += static_cast<double>(s.mem_lengths[1]);
+    }
+    ans[0] /= species.size();
+    ans[1] /= species.size();
+    return ans;
   }
 };
 
