@@ -225,18 +225,20 @@ class MultiLevelEvoGame {
     return ans / species.size();
   }
 
+  // number of efficient but not FR species
   size_t NumEfficient() const {
     size_t count = 0;
     for (const Species& s: species) {
-      if (s.is_efficient) count++;
+      if (s.is_efficient && !s.is_defensible) count++;
     }
     return count;
   }
 
+  // number of defensible but not FR species
   size_t NumDefensible() const {
     size_t count = 0;
     for (const Species& s: species) {
-      if (s.is_defensible) count++;
+      if (s.is_defensible && !s.is_efficient) count++;
     }
     return count;
   }
