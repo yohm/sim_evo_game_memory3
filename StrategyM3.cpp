@@ -36,8 +36,9 @@ void StrategyM3::Inspect(std::ostream& out) const {
     std::vector<int> path1 = {1};
     while (true) {
       int next = NextITGState( *path1.rbegin() );
-      if (std::find(path1.begin(), path1.end(), next) != path1.end()) break;
+      bool found = (std::find(path1.begin(), path1.end(), next) != path1.end());
       path1.push_back(next);
+      if (found) break;
     }
     out << "Path in g(S,S) from (ccc,ccd): ";
     for (int n: path1) { out << StateM3(n) << " -> "; }
@@ -46,8 +47,9 @@ void StrategyM3::Inspect(std::ostream& out) const {
     std::vector<int> path62 = {62};
     while (true) {
       int next = NextITGState( *path62.rbegin() );
-      if (std::find(path62.begin(), path62.end(), next) != path62.end()) break;
+      bool found = (std::find(path62.begin(), path62.end(), next) != path62.end());
       path62.push_back(next);
+      if (found) break;
     }
     out << "Path in g(S,S) from (ddd,ddc): ";
     for (int n: path62) { out << StateM3(n) << " -> "; }
@@ -143,8 +145,8 @@ std::vector<std::vector<size_t>> StrategyM3::ShortestNegativeCycles() const {
     for (auto sj: sjs) {
       size_t j = sj.ID();
       links[i][j] = si.RelativePayoff();
-      starts.push_back(i);
     }
+    if (si.RelativePayoff() < 0) starts.push_back(i);
   }
 
   struct path_t {
