@@ -100,7 +100,30 @@ void test_AON3() {
 
   IC( histo_fixation_prob(aon3) );
   IC( histo_fixation_prob(capri) );
+}
 
+void PrintFixationProbs(uint64_t resident_id) {
+  auto prm = DefaultTestParameters();
+  prm.N = 3;
+  prm.benefit = 2;
+  MultiLevelEvoGame eco(prm);
+
+  MultiLevelEvoGame::Species resident(resident_id, prm.error_rate);
+
+  std::map<double,int> fixation_prob_histo;
+  double sum = 0.0;
+  size_t N = 1000;
+  for (size_t i = 0; i < N; i++) {
+    uint64_t mut_id = eco.WeightedSampleStrategySpace();
+    // uint64_t mut_id = eco.UniformSampleStrategySpace();
+    MultiLevelEvoGame::Species mut(mut_id, eco.prm.error_rate);
+    double f = eco.FixationProb(mut, resident);
+    sum += f;
+    double key = std::round(f * 10.0) / 10.0;
+    fixation_prob_histo[key] = GetWithDef(fixation_prob_histo, key, 0) + 1;
+  }
+  double fixation_prob = sum / N;
+  IC(fixation_prob_histo, fixation_prob);
 }
 
 int main(int argc, char* argv[]) {
@@ -110,6 +133,47 @@ int main(int argc, char* argv[]) {
     test_IntraGroupSelection();
     test_InterGroupSelection();
     test_AON3();
+  }
+  else if (argc == 2) {
+    std::regex re_d(R"(\d+)"), re_c(R"([cd]{64})");
+    if (std::regex_match(argv[1], re_d)) {
+      uint64_t id = std::stoull(argv[1]);
+      PrintFixationProbs(id);
+    }
+    else if (std::regex_match(argv[1], re_c)) {
+      StrategyM3 str(argv[1]);
+      PrintFixationProbs(str.ID());
+    }
+    else {
+      std::map<std::string,StrategyM3> m = {
+        {"ALLC", StrategyM3::ALLC()},
+        {"ALLD", StrategyM3::ALLD()},
+        {"TFT", StrategyM3::TFT()},
+        {"WSLS", StrategyM3::WSLS()},
+        {"TF2T", StrategyM3::TF2T()},
+        {"TFT-ATFT", StrategyM3::TFT_ATFT()},
+        {"CAPRI", StrategyM3::CAPRI()},
+        {"CAPRI2", StrategyM3::CAPRI2()},
+        {"AON2", StrategyM3::AON(2)},
+        {"AON3", StrategyM3::AON(3)},
+        };
+      std::string key(argv[1]);
+      if (m.find(key) != m.end()) {
+        PrintFixationProbs(m.at(key).ID());
+      }
+      else {
+        std::cerr << "Error: unknown strategy " << key << std::endl;
+        std::cerr << "  supported strategies are [";
+        for (const auto& kv: m) {
+          std::cerr << kv.first << ", ";
+        }
+        std::cerr << "]" << std::endl;
+        return 1;
+      }
+    }
+  }
+  else {
+    throw std::runtime_error("invalid number of arguments");
   }
 
   return 0;
