@@ -49,3 +49,7 @@ add_executable(main_multi_evo_parallel main_multi_evo_parallel.cpp ${SOURCE_FILE
 target_link_libraries(main_multi_evo_parallel PRIVATE Eigen3::Eigen)
 target_link_libraries(main_multi_evo_parallel PRIVATE OpenMP::OpenMP_CXX)
 target_compile_definitions(main_multi_evo_parallel PRIVATE EIGEN_DONT_PARALLELIZE)
+
+add_executable(main_multi_evo_serial main_multi_evo_serial.cpp ${SOURCE_FILES} MultiLevelEvoGameSerial.hpp)
+target_link_libraries(main_multi_evo_serial PRIVATE Eigen3::Eigen)
+target_compile_definitions(main_multi_evo_serial PRIVATE EIGEN_DONT_PARALLELIZE)
