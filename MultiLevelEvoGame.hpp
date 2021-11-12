@@ -34,14 +34,14 @@ class MultiLevelEvoGame {
     double benefit;
     double error_rate;
     double sigma, sigma_g;
-    double p_intra;
+    double p_mu;  // probability of introducing a mutant
     std::array<size_t,2> strategy_space;
     std::string initial_condition; // "random", "TFT", "WSLS", "TFT-ATFT", "CAPRI"
     uint64_t _seed;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Parameters, T_max, T_print, T_init,
-      M, N, benefit, error_rate, sigma, sigma_g, p_intra, strategy_space,
-      initial_condition, _seed);
+      M, N, benefit, error_rate, sigma, sigma_g, p_mu,
+      strategy_space, initial_condition, _seed);
   };
 
 
@@ -157,11 +157,11 @@ class MultiLevelEvoGame {
     return 1.0 / rho_inv;
   }
 
-  double SelectionProb(const Species& s_i, const Species& s_j) const {
-    double pi = (prm.benefit - 1.0) * s_i.cooperation_level;
-    double pj = (prm.benefit - 1.0) * s_j.cooperation_level;
+  double SelectionProb(const Species& s_target, const Species& s_focal) const {
+    double pi = (prm.benefit - 1.0) * s_focal.cooperation_level;
+    double p_target = (prm.benefit - 1.0) * s_target.cooperation_level;
     // f_{A\to B} = { 1 + \exp[ \sigma_g (s_A - s_B) ] }^{-1}
-    return 1.0 / (1.0 + std::exp( prm.sigma_g * (pi - pj) ));
+    return 1.0 / (1.0 + std::exp( prm.sigma_g * (pi - p_target) ));
   }
 
   uint64_t UniformSampleStrategySpace() {
@@ -177,46 +177,42 @@ class MultiLevelEvoGame {
     size_t m1 = mi % (space.mem[0]+1), m2 = mi / (space.mem[0]+1);
     StrategySpace ss(m1, m2);
     std::uniform_int_distribution<uint64_t> sample(0ull, ss.Max());
-    return ss.ToGlobalID( sample(a_rnd[th]));
+    uint64_t gid = ss.ToGlobalID( sample(a_rnd[th]));
+    const StrategySpace::mem_t target({m1, m2});
+    while (StrategySpace::MemLengths(gid) != target) {
+      gid = ss.ToGlobalID( sample(a_rnd[th]));
+    }
+    return gid;
   }
 
   void Update() {
-    std::vector<Species> species_new = species;
+    std::vector<Species> candidates = species;
     #pragma omp parallel for
     for (size_t i = 0; i < prm.M; i++) {
       int th = omp_get_thread_num();
-      if (uni(a_rnd[th]) < prm.p_intra) {
-        species_new[i] = IntraGroupSelection(i);
+      if (uni(a_rnd[th]) < prm.p_mu) {
+        uint64_t mut_id = WeightedSampleStrategySpace();
+        candidates[i] = Species(mut_id, prm.error_rate);
       }
       else {
-        species_new[i] = InterGroupSelection(i);
+        std::uniform_int_distribution<size_t> dist(1, prm.M-1);
+        size_t target = static_cast<size_t>(i + dist(a_rnd[th])) % prm.M;
+        double p = SelectionProb(species[target], species[i]);
+        if (uni(a_rnd[th]) < p) {
+          candidates[i] = species[target];
+        }
       }
     }
-    species = species_new;
-  }
 
-  Species IntraGroupSelection(size_t g) {
-    const int th = omp_get_thread_num();
-    uint64_t mut_id = WeightedSampleStrategySpace();
-    Species mut(mut_id, prm.error_rate);
-    // double mut_coop_level = CooperationLevel(mut_id);
-    double f = FixationProb(mut, species[g]);
-    IC(g, species[g], mut, f);
-    if (uni(a_rnd[th]) < f) {
-      return mut;
+    #pragma omp parallel for
+    for (size_t i = 0; i < prm.M; i++) {
+      if (candidates[i].strategy_id == species[i].strategy_id) continue;
+      double f = FixationProb(candidates[i], species[i]);
+      int th = omp_get_thread_num();
+      if (uni(a_rnd[th]) < f) {
+        species[i] = candidates[i];
+      }
     }
-    return species[g];
-  }
-
-  Species InterGroupSelection(size_t g1) {
-    const int th = omp_get_thread_num();
-    size_t g2 = static_cast<size_t>(g1 + 1 + uni(a_rnd[th]) * (prm.M-1)) % prm.M;
-    double p = SelectionProb(species[g1], species[g2]);
-    IC(species[g1], species[g2], p);
-    if (uni(a_rnd[th]) < p) {
-      return species[g2];
-    }
-    return species[g1];
   }
 
   double CooperationLevel() const {
