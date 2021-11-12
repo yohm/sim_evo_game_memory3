@@ -2,7 +2,6 @@
 #include <regex>
 #include <cassert>
 #include "MultiLevelEvoGame.hpp"
-#include "MultiLevelEvoGameSerial.hpp"
 
 #define myassert(x) do {                              \
 if (!(x)) {                                           \
@@ -23,24 +22,7 @@ MultiLevelEvoGame::Parameters DefaultTestParameters() {
   prm.error_rate = 1.0e-3;
   prm.sigma = 10.0;
   prm.sigma_g = 10.0;
-  prm.p_intra = 0.9;
-  prm.strategy_space = {3,3};
-  prm.initial_condition = "random";
-  prm._seed = 1234567890ull;
-  return prm;
-}
-
-MultiLevelEvoGameSerial::Parameters DefaultTestParametersSerial() {
-  MultiLevelEvoGameSerial::Parameters prm;
-  prm.T_max = 1;
-  prm.T_init = 0;
-  prm.T_print = 1;
-  prm.M = 100;
-  prm.N = 3;
-  prm.benefit = 2.0;
-  prm.error_rate = 1.0e-3;
-  prm.sigma = 10.0;
-  prm.sigma_g = 10.0;
+  prm.p_mu = 0.5;
   prm.strategy_space = {3,3};
   prm.initial_condition = "random";
   prm._seed = 1234567890ull;
@@ -120,41 +102,6 @@ void test_AON3() {
   IC( histo_fixation_prob(capri) );
 }
 
-void test_Serial() {
-  auto prm = DefaultTestParametersSerial();
-  prm.N = 3;
-  prm.M = 100;
-  prm.sigma_g = 10.0;
-  prm.sigma = 10.0;
-  MultiLevelEvoGameSerial eco(prm);
-
-  MultiLevelEvoGameSerial::Species allc(StrategyM3::ALLC().ID(), prm.error_rate);
-  MultiLevelEvoGameSerial::Species aon3(StrategyM3::AON(3).ID(), prm.error_rate);
-  MultiLevelEvoGameSerial::Species capri(StrategyM3::CAPRI().ID(), prm.error_rate);
-
-  auto histo_fixation_prob = [&eco](const MultiLevelEvoGameSerial::Species& resident) {
-    std::map<double,int> histo, histo2;
-    double avg = 0.0, avg2 = 0.0;
-    for (size_t i = 0; i < 1000; i++) {
-      uint64_t mut_id = eco.WeightedSampleStrategySpace();
-      MultiLevelEvoGameSerial::Species mut(mut_id, eco.prm.error_rate);
-      double f = eco.FixationProb(mut, resident);
-      avg += f;
-      double key = std::round(f * 10.0) / 10.0;
-      histo[key] = GetWithDef(histo, key, 0) + 1;
-      double f2 = eco.GroupFixationProb(mut, resident);
-      avg2 += f2;
-      double key2 = std::round(f2 * 10.0) / 10.0;
-      histo2[key2] = GetWithDef(histo2, key2, 0) + 1;
-    }
-    return std::make_tuple(histo, avg/1000, histo2, avg2/1000);
-  };
-
-  IC( histo_fixation_prob(allc) );
-  IC( histo_fixation_prob(aon3) );
-  IC( histo_fixation_prob(capri) );
-}
-
 void PrintFixationProbs(uint64_t resident_id) {
   auto prm = DefaultTestParameters();
   prm.N = 3;
@@ -183,10 +130,9 @@ int main(int argc, char* argv[]) {
   if (argc == 1) {
     std::cerr << "Testing MultiLevelEvoGame class" << std::endl;
 
-    // test_IntraGroupSelection();
-    // test_InterGroupSelection();
-    // test_AON3();
-    test_Serial();
+    test_IntraGroupSelection();
+    test_InterGroupSelection();
+    test_AON3();
   }
   else if (argc == 2) {
     std::regex re_d(R"(\d+)"), re_c(R"([cd]{64})");

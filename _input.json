@@ -1,17 +1,15 @@
 {
-  "N_max": 30,
-  "sigma": 1.0,
+  "T_max": 20,
+  "T_print":1,
+  "T_init": 10,
+  "M": 100,
+  "N": 3,
+  "benefit": 2.0,
   "error_rate": 0.001,
-  "benefit_max": 4.0,
-  "benefit_delta": 0.05,
-  "strategy_space": [1, 1],
-  "process_grid_size": [2, 2],
-  "block_size": 8,
-  "additional": [
-    "CAPRI2",
-    "CAPRI",
-    "AON2",
-    "AON3",
-    "TFT-ATFT"
-  ]
+  "sigma": 10.0,
+  "sigma_g": 10.0,
+  "p_mu": 0.5,
+  "strategy_space": [3, 3],
+  "initial_condition": "random",
+  "_seed": 1234567890
 }
