@@ -66,7 +66,7 @@ class MultiLevelEvoGame {
     double is_defensible;
     StrategySpace::mem_t mem_lengths;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Species, strategy_id, cooperation_level, is_efficient, is_defensible);
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Species, strategy_id, cooperation_level, is_efficient, is_defensible, mem_lengths);
   };
 
   MultiLevelEvoGame(const Parameters& _prm) :
