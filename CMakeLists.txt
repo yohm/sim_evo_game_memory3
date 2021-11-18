@@ -33,3 +33,5 @@ add_executable(main_multi_evo main_multi_evo.cpp ${SOURCE_FILES} MultiLevelEvoGa
 target_link_libraries(main_multi_evo PRIVATE Eigen3::Eigen)
 target_link_libraries(main_multi_evo PRIVATE OpenMP::OpenMP_CXX)
 target_compile_definitions(main_multi_evo PRIVATE EIGEN_DONT_PARALLELIZE)
+
+add_executable(find_shorter_memory_FR find_shorter_memory_FR.cpp)
