@@ -12,11 +12,10 @@
 
 class Partition {
  public:
-  explicit Partition(size_t n) : N(n), parent(n) {
+  explicit Partition(size_t n) : N(n) {
     groups[0] = std::set<size_t>();
     for (size_t i = 0; i < N; i++) {
       groups[0].insert(i);
-      parent[i] = 0;
     }
   }
   size_t size() const { return groups.size(); }
@@ -30,15 +29,21 @@ class Partition {
     groups.erase(i);
     size_t i1 = *sub.begin();
     groups[i1] = sub;
-    for (size_t x : sub) { parent[x] = i1; }
     size_t i2 = *sub2.begin();
     groups[i2] = sub2;
-    for (size_t x : sub2) { parent[x] = i2; }
     if (sub.size() <= sub2.size()) { return {i1, i2}; }
     else { return {i2, i1}; }
   }
   const std::set<size_t>& group(size_t i) const { return groups.at(i); }
-  const size_t group_id(size_t si) const { return parent.at(si); }
+  const size_t group_id(size_t si) const {
+    for (const auto& kv: groups) {
+      if (kv.second.find(si) != kv.second.end()) {
+        return kv.first;
+      }
+    }
+    std::cerr << "unknown member" << std::endl;
+    throw std::runtime_error("unknown member");
+  }
   std::vector<size_t> group_ids() const {
     std::vector<size_t> ans;
     for (const auto& it : groups) {
