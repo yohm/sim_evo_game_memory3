@@ -14,7 +14,6 @@ find_package(Eigen3 REQUIRED)
 # See https://eigen.tuxfamily.org/dox/TopicCMakeGuide.html
 
 include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/json/include ${CMAKE_SOURCE_DIR}/eigen)
-link_directories(/usr/local/lib)
 
 add_executable(test_DirectedGraph test_DirectedGraph.cpp DirectedGraph.hpp DirectedGraph.cpp)
 
