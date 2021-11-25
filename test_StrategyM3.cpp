@@ -1,6 +1,7 @@
 #include <iostream>
 #include <regex>
 #include <cassert>
+#include <random>
 #include "StrategyM3.hpp"
 
 #define myassert(x) do {                              \
@@ -458,6 +459,30 @@ void PrintCAPRIs() {
   }
 }
 
+void test_RandomStrategy() {
+  const uint64_t seed = 123456789ull;
+  std::mt19937_64 rnd(seed);
+  std::uniform_int_distribution<uint64_t> uni(std::numeric_limits<uint64_t>::min(), std::numeric_limits<uint64_t>::max());
+
+  std::cerr << "random strategy test" << std::endl;
+  auto t1 = std::chrono::system_clock::now();
+  for (int i = 0; i < 1000; i++) {
+    StrategyM3 s( uni(rnd) );
+    auto m1 = s.MinimizeDFAHopcroft(true).to_map();
+    auto m2 = s.MinimizeDFA(true).to_map();
+    for (const auto& kv: m1) {
+      myassert(kv.second == m2.at(kv.first));
+    }
+    auto m3 = s.MinimizeDFAHopcroft(false).to_map();
+    auto m4 = s.MinimizeDFA(false).to_map();
+    for (const auto& kv: m3) {
+      myassert(kv.second == m4.at(kv.first));
+    }
+  }
+  auto t2 = std::chrono::system_clock::now();
+  std::cerr << "elapsed: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << " ms" << std::endl;
+}
+
 int main(int argc, char* argv[]) {
   if (argc == 1) {
     std::cout << "Testing StrategyM3 class" << std::endl;
@@ -471,6 +496,7 @@ int main(int argc, char* argv[]) {
     test_CAPRI2();
     test_sCAPRI2();
     // PrintCAPRIs();
+    test_RandomStrategy();
   }
   else if (argc == 2) {
     std::regex re_d(R"(\d+)"), re_c(R"([cd]{64})");
