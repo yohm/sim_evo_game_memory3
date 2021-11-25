@@ -52,6 +52,13 @@ class Partition {
     return ans;
   }
   const std::map<size_t, std::set<size_t>>& to_map() const { return groups; }
+  std::map<size_t, std::vector<size_t>> to_vec_map() const {
+    std::map<size_t, std::vector<size_t>> m;
+    for (const auto& kv: groups) {
+      m[kv.first] = std::vector<size_t>(kv.second.begin(), kv.second.end());
+    }
+    return m;
+  }
   friend std::ostream &operator<<(std::ostream &os, const Partition &p) {
     for (const auto &kv: p.groups) {
       os << kv.first << " => " << kv.second.size() << " [\n  ";

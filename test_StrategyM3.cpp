@@ -3,6 +3,7 @@
 #include <cassert>
 #include <random>
 #include "StrategyM3.hpp"
+#include "icecream-cpp/icecream.hpp"
 
 #define myassert(x) do {                              \
 if (!(x)) {                                           \
@@ -156,10 +157,10 @@ void test_BasicStrategies() {
     myassert(full_automaton.at(0).size() == 32);
     myassert(full_automaton.at(1).size() == 32);
 
-    const auto simp_a = tft.MinimizeDFAHopcroft(false).to_map();
+    const auto simp_a = tft.MinimizeDFAHopcroft(false).to_vec_map();
     myassert(simp_a.size() == 2);
     myassert(simp_automaton == simp_a);
-    const auto full_a = tft.MinimizeDFAHopcroft(true).to_map();
+    const auto full_a = tft.MinimizeDFAHopcroft(true).to_vec_map();
     myassert(full_automaton == full_a);
   }
   {
@@ -187,9 +188,9 @@ void test_BasicStrategies() {
     myassert(full_automaton.at(0).size() == 32);
     myassert(full_automaton.at(1).size() == 32);
 
-    const auto simp_a = wsls.MinimizeDFAHopcroft(false).to_map();
+    const auto simp_a = wsls.MinimizeDFAHopcroft(false).to_vec_map();
     myassert(simp_a.size() == 2);
-    const auto full_a = wsls.MinimizeDFAHopcroft(true).to_map();
+    const auto full_a = wsls.MinimizeDFAHopcroft(true).to_vec_map();
     myassert(full_automaton == full_a);
   }
   {
@@ -211,19 +212,19 @@ void test_BasicStrategies() {
     const auto simp_automaton = tf2t.MinimizeDFA(false).to_map();
     myassert(simp_automaton.size() == 3);
     myassert(simp_automaton.at(0).size() == 32);
-    myassert(simp_automaton.at(1) == std::set<size_t>({1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 57, 61}));
-    myassert(simp_automaton.at(3) == std::set<size_t>({3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47, 51, 55, 59, 63}));
+    myassert(simp_automaton.at(1) == std::vector<size_t>({1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 57, 61}));
+    myassert(simp_automaton.at(3) == std::vector<size_t>({3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47, 51, 55, 59, 63}));
 
     const auto full_automaton = tf2t.MinimizeDFA(true).to_map();
     myassert(full_automaton.size() == 3);
     myassert(full_automaton.at(0).size() == 32);
-    myassert(full_automaton.at(1) == std::set<size_t>({1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 57, 61}));
-    myassert(full_automaton.at(3) == std::set<size_t>({3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47, 51, 55, 59, 63}));
+    myassert(full_automaton.at(1) == std::vector<size_t>({1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 57, 61}));
+    myassert(full_automaton.at(3) == std::vector<size_t>({3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47, 51, 55, 59, 63}));
 
-    const auto simp_a = tf2t.MinimizeDFAHopcroft(false).to_map();
+    const auto simp_a = tf2t.MinimizeDFAHopcroft(false).to_vec_map();
     myassert(simp_a.size() == 3);
     myassert(simp_automaton == simp_a);
-    const auto full_a = tf2t.MinimizeDFAHopcroft(true).to_map();
+    const auto full_a = tf2t.MinimizeDFAHopcroft(true).to_vec_map();
     myassert(full_automaton == full_a);
   }
 
@@ -270,22 +271,22 @@ void test_TFTATFT() {
   myassert(simp_automaton.size() == 4);
   myassert(simp_automaton.at(0).size() == 28);  // TFT-c
   myassert(simp_automaton.at(1).size() == 20);  // TFT-d
-  myassert(simp_automaton.at(8) == std::set<size_t>({8, 12, 40, 44, 24, 28, 56, 60}));  // ATFT-d
-  myassert(simp_automaton.at(9) == std::set<size_t>({9, 13, 41, 45, 25, 29, 57, 61}));  // ATFT-c
+  myassert(simp_automaton.at(8) == std::vector<size_t>({8, 12, 24, 28, 40, 44, 56, 60}));  // ATFT-d
+  myassert(simp_automaton.at(9) == std::vector<size_t>({9, 13, 25, 29, 41, 45, 57, 61}));  // ATFT-c
 
   const auto full_auto = tft_atft.MinimizeDFA(true).to_map();
   myassert(full_auto.size() == 6);
   myassert(full_auto.at(0).size() == 24);  // TFT-c
   myassert(full_auto.at(1).size() == 12);  // TFT-d
-  myassert(full_auto.at(8) == std::set<size_t>({8, 12, 40, 44, 24, 28, 56, 60}));  // ATFT-d
-  myassert(full_auto.at(9) == std::set<size_t>({9, 13, 41, 45, 25, 29, 57, 61}));  // ATFT-c
-  myassert(full_auto.at(19) == std::set<size_t>({19, 23, 51, 55}));  // TFT-c-2
-  myassert(full_auto.at(11) == std::set<size_t>({11, 15, 43, 47, 27, 31, 59, 63}));  // TFT-d-2
+  myassert(full_auto.at(8) == std::vector<size_t>({8, 12, 24, 28, 40, 44, 56, 60}));  // ATFT-d
+  myassert(full_auto.at(9) == std::vector<size_t>({9, 13, 25, 29, 41, 45, 57, 61}));  // ATFT-c
+  myassert(full_auto.at(19) == std::vector<size_t>({19, 23, 51, 55}));  // TFT-c-2
+  myassert(full_auto.at(11) == std::vector<size_t>({11, 15, 27, 31, 43, 47, 59, 63}));  // TFT-d-2
 
-  const auto simp_a = tft_atft.MinimizeDFAHopcroft(false).to_map();
+  const auto simp_a = tft_atft.MinimizeDFAHopcroft(false).to_vec_map();
   myassert(simp_a.size() == 4);
   myassert(simp_automaton == simp_a);
-  const auto full_a = tft_atft.MinimizeDFAHopcroft(true).to_map();
+  const auto full_a = tft_atft.MinimizeDFAHopcroft(true).to_vec_map();
   myassert(full_auto == full_a);
 }
 
@@ -339,10 +340,10 @@ void test_CAPRI() {
   const auto full_auto = capri.MinimizeDFA(true).to_map();
   myassert(full_auto.size() == 14);
 
-  const auto simp_a = capri.MinimizeDFAHopcroft(false).to_map();
+  const auto simp_a = capri.MinimizeDFAHopcroft(false).to_vec_map();
   myassert(simp_a.size() == 7);
   myassert(simp_auto == simp_a);
-  const auto full_a = capri.MinimizeDFAHopcroft(true).to_map();
+  const auto full_a = capri.MinimizeDFAHopcroft(true).to_vec_map();
   myassert(full_auto == full_a);
 }
 
@@ -384,9 +385,9 @@ void test_CAPRI2() {
   const auto full_auto = capri2.MinimizeDFA(true).to_map();
   myassert(full_auto.size() == 18);
 
-  const auto simp_a = capri2.MinimizeDFAHopcroft(false).to_map();
+  const auto simp_a = capri2.MinimizeDFAHopcroft(false).to_vec_map();
   myassert(simp_auto == simp_a);
-  const auto full_a = capri2.MinimizeDFAHopcroft(true).to_map();
+  const auto full_a = capri2.MinimizeDFAHopcroft(true).to_vec_map();
   myassert(full_auto == full_a);
 
   StrategyM3 wsls = StrategyM3("cdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdc");
@@ -416,13 +417,13 @@ void test_sCAPRI2() {
   myassert(scapri2.IsDistinguishableTopo() == false);
 
   const auto simp_auto = scapri2.MinimizeDFA(false).to_map();
-  const auto simp_a = scapri2.MinimizeDFAHopcroft(false).to_map();
+  const auto simp_a = scapri2.MinimizeDFAHopcroft(false).to_vec_map();
   myassert(simp_auto.size() == 7);
   myassert(simp_auto == simp_a);
 
   const auto full_auto = scapri2.MinimizeDFA(true).to_map();
   myassert(full_auto.size() == 10);
-  const auto full_a = scapri2.MinimizeDFAHopcroft(true).to_map();
+  const auto full_a = scapri2.MinimizeDFAHopcroft(true).to_vec_map();
   myassert(full_auto == full_a);
 }
 
@@ -434,10 +435,10 @@ void test_EfficiencyDefensible() {
   // auto stat = s1.StationaryState(0.0001);
   // for(int i=0; i<64; i++) { myassert(stat[i] < 0.01); }
   const auto simp_auto = s1.MinimizeDFA(false).to_map();
-  const auto simp_a = s1.MinimizeDFAHopcroft(false).to_map();
+  const auto simp_a = s1.MinimizeDFAHopcroft(false).to_vec_map();
   myassert(simp_auto == simp_a);
   const auto full_auto = s1.MinimizeDFA(true).to_map();
-  const auto full_a = s1.MinimizeDFAHopcroft(true).to_map();
+  const auto full_a = s1.MinimizeDFAHopcroft(true).to_vec_map();
   myassert(full_auto == full_a);
 }
 
@@ -468,12 +469,12 @@ void test_RandomStrategy() {
   auto t1 = std::chrono::system_clock::now();
   for (int i = 0; i < 1000; i++) {
     StrategyM3 s( uni(rnd) );
-    auto m1 = s.MinimizeDFAHopcroft(true).to_map();
+    auto m1 = s.MinimizeDFAHopcroft(true).to_vec_map();
     auto m2 = s.MinimizeDFA(true).to_map();
     for (const auto& kv: m1) {
       myassert(kv.second == m2.at(kv.first));
     }
-    auto m3 = s.MinimizeDFAHopcroft(false).to_map();
+    auto m3 = s.MinimizeDFAHopcroft(false).to_vec_map();
     auto m4 = s.MinimizeDFA(false).to_map();
     for (const auto& kv: m3) {
       myassert(kv.second == m4.at(kv.first));
@@ -529,8 +530,8 @@ int main(int argc, char* argv[]) {
       else {
         std::cerr << "Error: unknown strategy " << key << std::endl;
         std::cerr << "  supported strategies are [";
-        for (const auto& [k,v]: m) {
-          std::cerr << k << ", ";
+        for (const auto& kv: m) {
+          std::cerr << kv.first << ", ";
         }
         std::cerr << "]" << std::endl;
         return 1;

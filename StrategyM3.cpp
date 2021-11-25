@@ -187,7 +187,7 @@ std::vector<std::vector<size_t>> StrategyM3::ShortestNegativeCycles() const {
 
 bool StrategyM3::IsDefensibleDFA() const {
   const auto autom = MinimizeDFA(false).to_map();
-  std::vector<std::set<size_t> > groups;
+  std::vector<std::vector<size_t> > groups;
   groups.reserve(autom.size());
   for (const auto &kv : autom) { groups.emplace_back(kv.second); }
   const size_t AN = groups.size(); // automaton size
@@ -198,8 +198,8 @@ bool StrategyM3::IsDefensibleDFA() const {
   for (size_t i = 0; i < AN; i++) { d[i].resize(AN, INF); }
 
   auto group_index_of_state = [&groups](const StateM3 &ns) -> size_t {
-    auto found = std::find_if(groups.cbegin(), groups.cend(), [&ns](std::set<size_t> g) {
-      return g.find(ns.ID()) != g.cend();
+    auto found = std::find_if(groups.cbegin(), groups.cend(), [&ns](std::vector<size_t> g) {
+      return std::find(g.begin(), g.end(), ns.ID()) != g.end();
     });
     assert(found != groups.cend());
     return std::distance(groups.cbegin(), found);
@@ -511,9 +511,7 @@ UnionFind StrategyM3::MinimizeDFA(bool noisy) const {
       const auto &group = kv.second;
       // iterate over combinations in group
       for (auto it_i = group.cbegin(); it_i != group.cend(); it_i++) {
-        auto it_j = it_i;
-        it_j++;
-        for (; it_j != group.cend(); it_j++) {
+        for (auto it_j = std::next(it_i); it_j != group.cend(); it_j++) {
           if (_Equivalent(*it_i, *it_j, uf_0, noisy)) {
             uf.merge(*it_i, *it_j);
           }

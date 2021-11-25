@@ -31,11 +31,11 @@ class UnionFind {
     else if (ri < rj) { parent[rj] = ri; }
     return true;
   }
-  std::map<size_t, std::set<size_t> > to_map() {
-    std::map<size_t, std::set<size_t> > m;
+  std::map<size_t, std::vector<size_t> > to_map() {
+    std::map<size_t, std::vector<size_t> > m;
     for (size_t i = 0; i < parent.size(); i++) {
       size_t r = root(i);
-      m[r].insert(i);
+      m[r].emplace_back(i);
     }
     return std::move(m);
   }
