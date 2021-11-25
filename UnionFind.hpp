@@ -39,6 +39,9 @@ class UnionFind {
     }
     return std::move(m);
   }
+  bool operator==(const UnionFind& rhs) const {
+    return (N == rhs.N && parent == rhs.parent);
+  }
  private:
   size_t N;
   std::vector<size_t> parent;

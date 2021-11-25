@@ -518,7 +518,7 @@ UnionFind StrategyM3::MinimizeDFA(bool noisy) const {
         }
       }
     }
-    if (uf_0_map == uf.to_map()) break;
+    if (uf_0 == uf) break;
     uf_0 = uf;
   }
   return uf_0;
