@@ -484,27 +484,28 @@ bool StrategyM3::IsDistinguishableTopo() const {
 }
 
 UnionFind StrategyM3::MinimizeDFA(bool noisy) const {
-  UnionFind uf_0(64);
+  const size_t N = 64;
+
+  UnionFind uf_0(N);
   // initialize grouping by the action c/d
-  size_t c_rep = -1, d_rep = -1;
-  for (size_t i = 0; i < 64; i++) {
+  size_t c_rep = N, d_rep = N;
+  for (size_t i = 0; i < N; i++) {
     if (actions[i] == C) {
       c_rep = i;
       break;
     }
   }
-  for (size_t i = 0; i < 64; i++) {
+  for (size_t i = 0; i < N; i++) {
     if (actions[i] == D) {
       d_rep = i;
       break;
     }
   }
-  for (size_t i = 0; i < 64; i++) {
+  for (size_t i = 0; i < N; i++) {
     size_t target = (actions[i] == C) ? c_rep : d_rep;
     uf_0.merge(i, target);
   }
 
-  const size_t N = 64;
   while (true) {
     UnionFind uf(N);
     size_t i = 0;
