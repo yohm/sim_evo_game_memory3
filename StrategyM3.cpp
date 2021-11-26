@@ -504,19 +504,20 @@ UnionFind StrategyM3::MinimizeDFA(bool noisy) const {
     uf_0.merge(i, target);
   }
 
+  const size_t N = 64;
   while (true) {
-    UnionFind uf(64);
-    const auto uf_0_map = uf_0.to_map();
-    for (const auto &kv : uf_0_map) { // refining a set in uf_0
-      const auto &group = kv.second;
-      // iterate over combinations in group
-      for (auto it_i = group.cbegin(); it_i != group.cend(); it_i++) {
-        for (auto it_j = std::next(it_i); it_j != group.cend(); it_j++) {
-          if (_Equivalent(*it_i, *it_j, uf_0, noisy)) {
-            uf.merge(*it_i, *it_j);
-          }
+    UnionFind uf(N);
+    size_t i = 0;
+    while (i < N) {
+      size_t i_next = N;
+      for (size_t j = i+1; j < N; j++) {
+        if (!uf.is_root(j)) continue;  // skip if it is already merged
+        if (uf_0.root(i) == uf_0.root(j) && _Equivalent(i, j, uf_0, noisy)) {
+          uf.merge(i, j);
         }
+        else if (i_next == N) { i_next = j; }  // keep the first unmerged node
       }
+      i = i_next;
     }
     if (uf_0 == uf) break;
     uf_0 = uf;

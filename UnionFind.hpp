@@ -23,6 +23,9 @@ class UnionFind {
     }
     return parent[i];
   }
+  bool is_root(size_t i) const {
+    return (parent[i] == i);
+  }
   bool merge(size_t i, size_t j) {
     size_t ri = root(i);
     size_t rj = root(j);
