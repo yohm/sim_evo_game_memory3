@@ -2,6 +2,7 @@
 #include <set>
 #include <map>
 #include "StrategyM3.hpp"
+#include "StrategySpace.hpp"
 
 StrategyM3::StrategyM3(const std::array<Action, 64> &acts) : actions(acts) {}
 
@@ -70,7 +71,9 @@ void StrategyM3::Inspect(std::ostream& out) const {
   auto p0 = MinimizeDFAHopcroft(false), p1 = MinimizeDFAHopcroft(true);
   out << "DFT minimized states: (" << p0.size() << " / " << p1.size() << ")\n";
   out << "--- automaton without noise:\n" << p0
-      << "--- automaton with noise:\n" << p1 << std::endl;
+      << "--- automaton with noise:\n" << p1;
+  auto mem = StrategySpace::MemLengths(ID());
+  out << "Memory lengths: [" << mem[0] << ", " << mem[1] << "]" << std::endl;
 }
 
 std::vector<StateM3> StrategyM3::NextPossibleStates(StateM3 current) const {

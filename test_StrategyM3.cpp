@@ -3,6 +3,7 @@
 #include <cassert>
 #include <random>
 #include "StrategyM3.hpp"
+#include "StrategySpace.hpp"
 #include "icecream-cpp/icecream.hpp"
 
 #define myassert(x) do {                              \

@@ -7,7 +7,7 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET 11.6)
 #set(CMAKE_VERBOSE_MAKEFILE 1)
 
 set(SOURCE_FILES Action.cpp Action.hpp DirectedGraph.hpp DirectedGraph.cpp
-        UnionFind.hpp Partition.hpp StrategyM3.hpp StrategyM3.cpp)
+        UnionFind.hpp Partition.hpp StrategyM3.hpp StrategyM3.cpp StrategySpace.hpp)
 find_package(MPI)
 find_package(OpenMP REQUIRED)
 find_package(Eigen3 REQUIRED)
