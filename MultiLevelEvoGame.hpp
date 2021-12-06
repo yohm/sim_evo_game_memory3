@@ -59,14 +59,17 @@ class MultiLevelEvoGame {
       is_efficient = strategy.IsEfficientTopo();
       is_defensible = strategy.IsDefensible();
       mem_lengths = StrategySpace::MemLengths(_strategy_id);
+      automaton_sizes[0] = strategy.MinimizeDFA(false).to_map().size();
+      automaton_sizes[1] = strategy.MinimizeDFA(true).to_map().size();
     };
     uint64_t strategy_id;
     double cooperation_level;
     double is_efficient;
     double is_defensible;
     StrategySpace::mem_t mem_lengths;
+    std::array<size_t,2> automaton_sizes;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Species, strategy_id, cooperation_level, is_efficient, is_defensible, mem_lengths);
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Species, strategy_id, cooperation_level, is_efficient, is_defensible, mem_lengths, automaton_sizes);
   };
 
   MultiLevelEvoGame(const Parameters& _prm) :
@@ -276,6 +279,17 @@ class MultiLevelEvoGame {
     for (const Species& s: species) {
       ans[0] += static_cast<double>(s.mem_lengths[0]);
       ans[1] += static_cast<double>(s.mem_lengths[1]);
+    }
+    ans[0] /= species.size();
+    ans[1] /= species.size();
+    return ans;
+  }
+
+  std::array<double,2> AverageAutomatonSizes() const { // average number of states of minimized automaton
+    std::array<double,2> ans = {0.0, 0.0};
+    for (const Species& s: species) {
+      ans[0] += (double)s.automaton_sizes[0];
+      ans[1] += (double)s.automaton_sizes[1];
     }
     ans[0] /= species.size();
     ans[1] /= species.size();

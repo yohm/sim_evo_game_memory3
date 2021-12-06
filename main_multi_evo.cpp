@@ -61,6 +61,7 @@ int main(int argc, char *argv[]) {
 
   double c_level_avg = 0.0, fr_fraction = 0.0, efficient_fraction = 0.0, defensible_fraction = 0.0;
   double avg_diversity = 0.0, avg_mem_0 = 0.0, avg_mem_1 = 0.0;
+  std::array<double,2> avg_automaton_sizes = {0.0, 0.0};
   size_t count = 0ul;
 
   std::ofstream tout("timeseries.dat");
@@ -85,15 +86,21 @@ int main(int argc, char *argv[]) {
       auto mem = eco.AverageMemLengths();
       avg_mem_0 += mem[0];
       avg_mem_1 += mem[1];
+      auto a_sizes = eco.AverageAutomatonSizes();
+      avg_automaton_sizes[0] += a_sizes[0];
+      avg_automaton_sizes[1] += a_sizes[1];
       count++;
     }
     if (t % prm.T_print == prm.T_print - 1) {
       double m_inv = 1.0 / prm.M;
       auto mem = eco.AverageMemLengths();
+      auto a_sizes = eco.AverageAutomatonSizes();
       tout << t + 1 << ' ' << eco.CooperationLevel() << ' ' << eco.NumFriendlyRival() * m_inv
                     << ' ' << eco.NumEfficient() * m_inv << ' ' << eco.NumDefensible() * m_inv
                     << ' ' << eco.Diversity() * m_inv
-                    << ' ' << mem[0] << ' ' << mem[1] << std::endl;
+                    << ' ' << mem[0] << ' ' << mem[1]
+                    << ' ' << a_sizes[0] << ' ' << a_sizes[1]
+                    << std::endl;
       // IC(t, eco.species);
     }
   }
@@ -108,6 +115,8 @@ int main(int argc, char *argv[]) {
     output["diversity"] = avg_diversity / count;
     output["mem_length_self"] = avg_mem_0 / count;
     output["mem_length_opponent"] = avg_mem_1 / count;
+    output["automaton_size_simple"] = avg_automaton_sizes[0] / count;
+    output["automaton_size_full"] = avg_automaton_sizes[1] / count;
     output["lifetime_init_species"] = lifetime;
     std::ofstream fout("_output.json");
     fout << output.dump(2);

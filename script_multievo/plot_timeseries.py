@@ -54,3 +54,18 @@ plt.plot(dat[:,0]/xscale, dat[:,7], '.-', label=r'$m_2$')
 plt.legend()
 # %%
 plt.savefig("memory_lengths.png")
+
+# %%
+plt.clf()
+
+digit = (np.floor(np.log10(dat[-1,0])) // 3 * 3)
+xscale = 10**digit
+
+plt.ylim((0,32.0))
+plt.xlabel( r'time ($\times 10^{' + f"{digit:.0f}" + r'}$)')
+plt.ylabel(r'automaton size')
+plt.plot(dat[:,0]/xscale, dat[:,8], '.-', label=r'$simple$')
+plt.plot(dat[:,0]/xscale, dat[:,9], '.-', label=r'$full$')
+plt.legend()
+# %%
+plt.savefig("automaton_sizes.png")
