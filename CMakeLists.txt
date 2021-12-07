@@ -33,4 +33,11 @@ target_link_libraries(main_multi_evo PRIVATE Eigen3::Eigen)
 target_link_libraries(main_multi_evo PRIVATE OpenMP::OpenMP_CXX)
 target_compile_definitions(main_multi_evo PRIVATE EIGEN_DONT_PARALLELIZE)
 
+add_executable(main_multi_evo_batch main_multi_evo_batch.cpp ${SOURCE_FILES} MultiLevelEvoGame.hpp)
+target_link_libraries(main_multi_evo_batch PRIVATE Eigen3::Eigen)
+target_link_libraries(main_multi_evo_batch PRIVATE OpenMP::OpenMP_CXX)
+target_compile_definitions(main_multi_evo_batch PRIVATE EIGEN_DONT_PARALLELIZE)
+target_include_directories(main_multi_evo_batch PRIVATE ${PROJECT_SOURCE_DIR}/caravan-lib)
+target_link_libraries(main_multi_evo_batch PRIVATE MPI::MPI_CXX)
+
 add_executable(find_shorter_memory_FR find_shorter_memory_FR.cpp)
