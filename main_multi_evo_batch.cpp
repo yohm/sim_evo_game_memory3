@@ -79,7 +79,7 @@ json RunSimulation(const MultiLevelEvoGame::Parameters& prm) {
   return output;
 }
 
-void ExpandInputsAndEnqueue(const json& inputs, caravan::Queue& q) {
+void ExpandInputsAndEnqueue(const json& inputs, caravan::Queue& q, std::mt19937_64& rnd) {
   for (const auto& kv: inputs.items()) {
     if (
       (kv.key() != "strategy_space" && kv.value().is_array()) ||
@@ -88,12 +88,21 @@ void ExpandInputsAndEnqueue(const json& inputs, caravan::Queue& q) {
       for (const auto& x: kv.value()) {
         json j = inputs;
         j[kv.key()] = x;
-        ExpandInputsAndEnqueue(j, q);
+        ExpandInputsAndEnqueue(j, q, rnd);
       }
       return;
     }
   }
-  q.Push(inputs);
+
+  int num_runs = inputs.at("number_of_runs").get<int>();
+  for (int i = 0; i < num_runs; i++) {
+    std::uniform_int_distribution<uint64_t> uni;
+    uint64_t seed = uni(rnd);
+    json j = inputs;
+    j["_seed"] = seed;
+    q.Push(j);
+
+  }
 }
 
 
@@ -127,12 +136,14 @@ int main(int argc, char *argv[]) {
   }
 
   std::function<void(caravan::Queue&)> on_init = [&inputs](caravan::Queue& q) {
-    ExpandInputsAndEnqueue(inputs, q);
+    std::mt19937_64 rnd( inputs.at("_seed").get<uint64_t>() );
+    inputs.erase("_seed");
+    ExpandInputsAndEnqueue(inputs, q, rnd);
   };
 
   std::function<void(int64_t, const json&, const json&, caravan::Queue&)> on_result_receive =
     [](int64_t task_id, const json& input, const json& output, caravan::Queue& q) {
-    std::cerr << task_id << std::endl << output << std::endl;
+    std::cout << task_id << std::endl << input << std::endl << output << std::endl;
   };
 
   std::function<json(const json&)> do_task = [](const json& input) {
