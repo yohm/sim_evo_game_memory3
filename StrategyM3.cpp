@@ -270,7 +270,7 @@ int StrategyM3::NextITGState(const StateM3 &s) const {
 
 std::array<double, 64> StrategyM3::StationaryState2(double e, const StrategyM3 *coplayer) const {
   if (coplayer == NULL) { coplayer = this; }
-  Eigen::Matrix<double, 65, 64> A;
+  Eigen::Matrix<double, 64, 64> A;
 
   for (int i = 0; i < 64; i++) {
     const StateM3 si(i);
@@ -296,11 +296,11 @@ std::array<double, 64> StrategyM3::StationaryState2(double e, const StrategyM3 *
     }
     A(i, i) = A(i, i) - 1.0;  // subtract unit matrix
   }
-  for (int i = 0; i < 64; i++) { A(64, i) = 1.0; }  // normalization condition
+  for (int i = 0; i < 64; i++) { A(63, i) += 1.0; }  // normalization condition
 
-  Eigen::VectorXd b(65);
-  for (int i = 0; i < 64; i++) { b(i) = 0.0; }
-  b(64) = 1.0;
+  Eigen::VectorXd b(64);
+  for (int i = 0; i < 63; i++) { b(i) = 0.0; }
+  b(63) = 1.0;
 
   Eigen::VectorXd x = A.colPivHouseholderQr().solve(b);
 

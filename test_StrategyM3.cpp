@@ -466,7 +466,7 @@ void test_RandomStrategy() {
   std::mt19937_64 rnd(seed);
   std::uniform_int_distribution<uint64_t> uni(std::numeric_limits<uint64_t>::min(), std::numeric_limits<uint64_t>::max());
 
-  std::cerr << "random strategy test" << std::endl;
+  std::cerr << "random strategy test for DFA minimization" << std::endl;
   auto t1 = std::chrono::system_clock::now();
   for (int i = 0; i < 1000; i++) {
     StrategyM3 s( uni(rnd) );
@@ -479,6 +479,26 @@ void test_RandomStrategy() {
     auto m4 = s.MinimizeDFA(false).to_map();
     for (const auto& kv: m3) {
       myassert(kv.second == m4.at(kv.first));
+    }
+  }
+  auto t2 = std::chrono::system_clock::now();
+  std::cerr << "elapsed: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << " ms" << std::endl;
+}
+
+void test_RandomStrategy2() {
+  const uint64_t seed = 9123456789ull;
+  std::mt19937_64 rnd(seed);
+  std::uniform_int_distribution<uint64_t> uni(std::numeric_limits<uint64_t>::min(), std::numeric_limits<uint64_t>::max());
+
+  std::cerr << "random strategy test for stationary distribution" << std::endl;
+  auto t1 = std::chrono::system_clock::now();
+  const double e = 1.0e-4;
+  for (int i = 0; i < 100; i++) {
+    StrategyM3 s( uni(rnd) ), s2(uni(rnd));
+    auto a1 = s.StationaryState(e, &s2);
+    auto a2 = s.StationaryState2(e, &s2);
+    for (int i = 0; i < 64; i++) {
+      myassert(std::fabs(a1[i]-a2[i]) < 0.01 );
     }
   }
   auto t2 = std::chrono::system_clock::now();
@@ -498,7 +518,8 @@ int main(int argc, char* argv[]) {
     test_CAPRI2();
     test_sCAPRI2();
     // PrintCAPRIs();
-    test_RandomStrategy();
+    // test_RandomStrategy();
+    test_RandomStrategy2();
   }
   else if (argc == 2) {
     std::regex re_d(R"(\d+)"), re_c(R"([cd]{64})");
