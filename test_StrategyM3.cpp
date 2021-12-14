@@ -495,8 +495,9 @@ void test_RandomStrategy2() {
   const double e = 1.0e-4;
   for (int i = 0; i < 1000; i++) {
     StrategyM3 s( uni(rnd) ), s2(uni(rnd));
-    auto a1 = s.StationaryState(e, &s2);
-    auto a2 = s.StationaryStateEigenDense(e, &s2);
+    auto a1 = s.StationaryStateEigenSparse(e, &s2);
+    auto a2 = s.StationaryStateLapack(e, &s2);
+    // auto a2 = s.StationaryStateEigenDense(e, &s2);
     for (int i = 0; i < 64; i++) {
       myassert(std::fabs(a1[i]-a2[i]) < 0.001 );
     }

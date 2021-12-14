@@ -269,7 +269,55 @@ int StrategyM3::NextITGState(const StateM3 &s) const {
 }
 
 std::array<double, 64> StrategyM3::StationaryState(double e, const StrategyM3 *coplayer) const {
-  return StationaryStateEigenSparse(e, coplayer);
+  return StationaryStateLapack(e, coplayer);
+}
+
+std::array<double, 64> StrategyM3::StationaryStateLapack(double e, const StrategyM3 *coplayer) const {
+  if (coplayer == nullptr) { coplayer = this; }
+
+  constexpr lapack_int N = 64, NRHS = 1;
+  std::array<double,4096> A = {0.0};
+  std::array<double,64> b = {0.0};
+  // double A[4096], b[64];  // column-major matrix A[i][j] = A_{ji}
+
+  // Eigen::Matrix<double, 64, 64> A;
+
+  for (int i = 0; i < 64; i++) {
+    const StateM3 si(i);
+    for (int j = 0; j < 64; j++) {
+      // calculate transition probability from j to i
+      const StateM3 sj(j);
+      // StateM3 next = NextITGState(sj);
+      Action act_a = ActionAt(sj);
+      Action act_b = coplayer->ActionAt(sj.SwapAB());
+      StateM3 next = sj.NextState(act_a, act_b);
+      int d = next.NumDiffInT1(si);
+      // row: i, col: j
+      if (d < 0) {
+        A[i+j*N] = 0.0;
+      } else if (d == 0) {
+        A[i+j*N] = (1.0 - e) * (1.0 - e);
+      } else if (d == 1) {
+        A[i+j*N] = (1.0 - e) * e;
+      } else if (d == 2) {
+        A[i+j*N] = e * e;
+      } else {
+        assert(false);
+      }
+    }
+    A[i+i*N] = A[i+i*N] - 1.0;  // subtract unit matrix
+  }
+  for (int j = 0; j < 64; j++) { A[63+j*N] += 1.0; }  // normalization condition
+
+  for (int i = 0; i < 63; i++) { b[i] = 0.0; }
+  b[63] = 1.0;
+
+  const lapack_int LDA = 64, LDB = 64;
+  lapack_int IPIV[64];
+  lapack_int info;
+  info = LAPACKE_dgesv(LAPACK_COL_MAJOR, N, NRHS, A.data(), LDA, IPIV, b.data(), LDB);
+
+  return b;
 }
 
 std::array<double, 64> StrategyM3::StationaryStateEigenDense(double e, const StrategyM3 *coplayer) const {
