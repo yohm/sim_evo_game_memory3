@@ -130,7 +130,8 @@ class StrategyM3 {
   bool IsDefensibleDFA() const; // check defensibility using DFA minimization
   // get stationary state. When coplayer is nullptr, it is set to self
   std::array<double, 64> StationaryState(double e = 0.0001, const StrategyM3 *coplayer = nullptr) const;
-  std::array<double, 64> StationaryState2(double e = 0.0001, const StrategyM3 *coplayer = nullptr) const;
+  std::array<double, 64> StationaryStateEigenDense(double e = 0.0001, const StrategyM3 *coplayer = nullptr) const;
+  std::array<double, 64> StationaryStateEigenSparse(double e = 0.0001, const StrategyM3 *coplayer = nullptr) const;
   // check efficiency. all actions must be fixed
   bool IsEfficient(double e = 0.00001, double th = 0.95) const { return (StationaryState(e)[0] > th); }
   bool IsEfficientTopo() const; // check efficiency using ITG

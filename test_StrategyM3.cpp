@@ -392,7 +392,7 @@ void test_CAPRI2() {
   myassert(full_auto == full_a);
 
   StrategyM3 wsls = StrategyM3("cdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdc");
-  auto ss = capri2.StationaryState2(0.0001, &wsls);
+  auto ss = capri2.StationaryStateEigenDense(0.0001, &wsls);
   std::cerr << ss[0] << std::endl;
   myassert(ss[0] < 0.5); // distinguishable against WSLS
 }
@@ -493,12 +493,12 @@ void test_RandomStrategy2() {
   std::cerr << "random strategy test for stationary distribution" << std::endl;
   auto t1 = std::chrono::system_clock::now();
   const double e = 1.0e-4;
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 1000; i++) {
     StrategyM3 s( uni(rnd) ), s2(uni(rnd));
     auto a1 = s.StationaryState(e, &s2);
-    auto a2 = s.StationaryState2(e, &s2);
+    auto a2 = s.StationaryStateEigenDense(e, &s2);
     for (int i = 0; i < 64; i++) {
-      myassert(std::fabs(a1[i]-a2[i]) < 0.01 );
+      myassert(std::fabs(a1[i]-a2[i]) < 0.001 );
     }
   }
   auto t2 = std::chrono::system_clock::now();

@@ -268,8 +268,12 @@ int StrategyM3::NextITGState(const StateM3 &s) const {
   return -1;
 }
 
-std::array<double, 64> StrategyM3::StationaryState2(double e, const StrategyM3 *coplayer) const {
-  if (coplayer == NULL) { coplayer = this; }
+std::array<double, 64> StrategyM3::StationaryState(double e, const StrategyM3 *coplayer) const {
+  return StationaryStateEigenSparse(e, coplayer);
+}
+
+std::array<double, 64> StrategyM3::StationaryStateEigenDense(double e, const StrategyM3 *coplayer) const {
+  if (coplayer == nullptr) { coplayer = this; }
   Eigen::Matrix<double, 64, 64> A;
 
   for (int i = 0; i < 64; i++) {
@@ -311,7 +315,7 @@ std::array<double, 64> StrategyM3::StationaryState2(double e, const StrategyM3 *
   return ans;
 }
 
-std::array<double, 64> StrategyM3::StationaryState(double e, const StrategyM3 *coplayer) const {
+std::array<double, 64> StrategyM3::StationaryStateEigenSparse(double e, const StrategyM3 *coplayer) const {
   if (coplayer == nullptr) { coplayer = this; }
 
   typedef Eigen::Triplet<double> T;
