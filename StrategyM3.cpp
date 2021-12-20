@@ -674,8 +674,8 @@ std::array<std::set<size_t>,2> StrategyM3::_SplitBySplitter(const Partition &par
 
 Action CAPRIn_action_at(size_t i, bool s_capri) {
   typedef std::bitset<6> B;
-  const B I(i);
-  std::string s = I.to_string('c', 'D');
+  const B bit(i);
+  std::string s = bit.to_string('c', 'D');
   std::reverse(s.begin(), s.end());
   const std::string Istr = s.substr(0,3) + '-' + s.substr(3,3);
 
@@ -683,7 +683,7 @@ Action CAPRIn_action_at(size_t i, bool s_capri) {
   // In this implementation, upper/lower bits correspond to A/B, respectively
   const B a_mask = 0b111'000ul;
   const B b_mask = 0b000'111ul;
-  const size_t na = (I & a_mask).count(), nb = (I & b_mask).count();
+  const size_t na = (bit & a_mask).count(), nb = (bit & b_mask).count();
 
   // E: Exploit others if payoff difference is n or greater
   if (!s_capri) {
@@ -693,22 +693,22 @@ Action CAPRIn_action_at(size_t i, bool s_capri) {
 
   size_t last_ccc = 3;
   for (size_t t = 0; t < 3; t++) {
-    if ((I & (latest<<t)) == B(0ul)) {  // CCC is found at t step before
+    if ((bit & (latest<<t)) == B(0ul)) {  // CCC is found at t step before
       last_ccc = t;
       break;
     }
   }
 
   // C: cooperate if the mutual cooperation is formed at last two rounds
-  if ((I & latest) == 0ul) {
+  if ((bit & latest) == 0ul) {
     return C;
   }
   else if (last_ccc > 0 && last_ccc < 3) {
     B mask = latest;
     for (size_t t = 0; t < last_ccc; t++) { mask = ((mask << 1ul) | latest); }
     // A: Accept punishment by prescribing *C* if all your relative payoffs are at least zero.
-    size_t pa = (I & mask & a_mask).count();
-    size_t pb = (I & mask & b_mask).count();
+    size_t pa = (bit & mask & a_mask).count();
+    size_t pb = (bit & mask & b_mask).count();
     if (pa >= pb) {
       return C;
     }
@@ -718,7 +718,7 @@ Action CAPRIn_action_at(size_t i, bool s_capri) {
     }
   }
   // R: grab the chance to recover
-  if (I == 0b111'110 || I == 0b110'111) {
+  if (bit == 0b111'110 || bit == 0b110'111) {
     // R: If payoff profile is (+1,+1,-1), prescribe *C*.
     return C;
   }
