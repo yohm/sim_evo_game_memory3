@@ -5,6 +5,8 @@
 #ifndef CPP_MULTILEVELEVOGAME_HPP
 #define CPP_MULTILEVELEVOGAME_HPP
 
+#define EIGEN_DONT_PARALLELIZE
+
 #include <iostream>
 #include <vector>
 #include <array>
