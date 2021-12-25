@@ -506,6 +506,45 @@ void test_RandomStrategy2() {
   std::cerr << "elapsed: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << " ms" << std::endl;
 }
 
+StrategyM3 ParseStrategy(const std::string& str) {
+  std::regex re_d(R"(\d+)"), re_c(R"([cd]{64})");
+  if (std::regex_match(str, re_d)) {
+    uint64_t id = std::stoull(str);
+    return StrategyM3{id};
+  }
+  else if (std::regex_match(str, re_c)) {
+    return StrategyM3{str.data()};
+  }
+  else {
+    std::map<std::string,StrategyM3> m = {
+      {"ALLC", StrategyM3::ALLC()},
+      {"ALLD", StrategyM3::ALLD()},
+      {"TFT", StrategyM3::TFT()},
+      {"WSLS", StrategyM3::WSLS()},
+      {"TF2T", StrategyM3::TF2T()},
+      {"TFT-ATFT", StrategyM3::TFT_ATFT()},
+      {"CAPRI", StrategyM3::CAPRI()},
+      {"CAPRI2", StrategyM3::CAPRI2()},
+      {"AON2", StrategyM3::AON(2)},
+      {"AON3", StrategyM3::AON(3)},
+    };
+    std::string key(str);
+    if (m.find(key) != m.end()) {
+      return m.at(key);
+    }
+    else {
+      std::cerr << "Error: unknown strategy " << key << std::endl;
+      std::cerr << "  supported strategies are [";
+      for (const auto& kv: m) {
+        std::cerr << kv.first << ", ";
+      }
+      std::cerr << "]" << std::endl;
+      std::runtime_error("unknown strategy");
+    }
+  }
+  return StrategyM3{0ull};
+}
+
 int main(int argc, char* argv[]) {
   if (argc == 1) {
     std::cout << "Testing StrategyM3 class" << std::endl;
@@ -523,42 +562,18 @@ int main(int argc, char* argv[]) {
     test_RandomStrategy2();
   }
   else if (argc == 2) {
-    std::regex re_d(R"(\d+)"), re_c(R"([cd]{64})");
-    if (std::regex_match(argv[1], re_d)) {
-      uint64_t id = std::stoull(argv[1]);
-      StrategyM3 str(id);
-      str.Inspect(std::cout);
-    }
-    else if (std::regex_match(argv[1], re_c)) {
-      StrategyM3 str(argv[1]);
-      str.Inspect(std::cout);
-    }
-    else {
-      std::map<std::string,StrategyM3> m = {
-        {"ALLC", StrategyM3::ALLC()},
-        {"ALLD", StrategyM3::ALLD()},
-        {"TFT", StrategyM3::TFT()},
-        {"WSLS", StrategyM3::WSLS()},
-        {"TF2T", StrategyM3::TF2T()},
-        {"TFT-ATFT", StrategyM3::TFT_ATFT()},
-        {"CAPRI", StrategyM3::CAPRI()},
-        {"CAPRI2", StrategyM3::CAPRI2()},
-        {"AON2", StrategyM3::AON(2)},
-        {"AON3", StrategyM3::AON(3)},
-      };
-      std::string key(argv[1]);
-      if (m.find(key) != m.end()) {
-        m.at(key).Inspect(std::cout);
-      }
-      else {
-        std::cerr << "Error: unknown strategy " << key << std::endl;
-        std::cerr << "  supported strategies are [";
-        for (const auto& kv: m) {
-          std::cerr << kv.first << ", ";
-        }
-        std::cerr << "]" << std::endl;
-        return 1;
-      }
+    StrategyM3 strategy = ParseStrategy(argv[1]);
+    strategy.Inspect(std::cout);
+  }
+  else if (argc == 3) {
+    StrategyM3 s1 = ParseStrategy(argv[1]);
+    StrategyM3 s2 = ParseStrategy(argv[2]);
+    std::cout << s1.ToString() << " vs " << s2.ToString() << '\n';
+    auto ss = s1.StationaryState(0.0001, &s2);
+    std::cout << std::fixed << std::setprecision(2);
+    for (size_t i = 0; i < 64; i++) {
+      std::cout << StateM3(i) << "| " << ss[i] << "    ";
+      if (i % 8 == 7) std::cout << "\n";
     }
   }
   else {
