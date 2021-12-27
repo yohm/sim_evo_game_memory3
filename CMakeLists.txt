@@ -25,7 +25,6 @@ add_executable(test_StrategySpace test_StrategySpace.cpp StrategySpace.hpp)
 target_link_libraries(test_StrategySpace PRIVATE Eigen3::Eigen lapacke)
 
 add_executable(test_MultiLevelEvoGame test_MultiLevelEvoGame.cpp MultiLevelEvoGame.hpp ${SOURCE_FILES})
-target_compile_definitions(test_MultiLevelEvoGame PRIVATE EIGEN_DONT_PARALLELIZE)
 target_link_libraries(test_MultiLevelEvoGame PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
 
 add_executable(main_multi_evo main_multi_evo.cpp ${SOURCE_FILES} MultiLevelEvoGame.hpp)

@@ -28,7 +28,7 @@ class MultiLevelEvoGame {
   public:
   class Parameters {
     public:
-    Parameters() { };
+    Parameters() = default;
     size_t T_max;
     size_t T_print;  // output interval
     size_t T_init;   // initial period
@@ -49,7 +49,8 @@ class MultiLevelEvoGame {
 
   class Species {
     public:
-    explicit Species(uint64_t _strategy_id, double e) : strategy_id(_strategy_id) {
+    explicit Species(uint64_t _strategy_id, double e) :
+    strategy_id(_strategy_id), mem_lengths{0,0}, automaton_sizes{0,0} {
       StrategyM3 strategy(strategy_id);
       cooperation_level = strategy.CooperationLevel(e);
       is_efficient = strategy.IsEfficientTopo();
@@ -60,16 +61,16 @@ class MultiLevelEvoGame {
     };
     uint64_t strategy_id;
     double cooperation_level;
-    double is_efficient;
-    double is_defensible;
+    bool is_efficient;
+    bool is_defensible;
     StrategySpace::mem_t mem_lengths;
     std::array<size_t,2> automaton_sizes;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Species, strategy_id, cooperation_level, is_efficient, is_defensible, mem_lengths, automaton_sizes);
   };
 
-  MultiLevelEvoGame(const Parameters& _prm) :
-    prm(_prm), space(prm.strategy_space[0], prm.strategy_space[1]) {
+  explicit MultiLevelEvoGame(Parameters _prm) :
+    prm(std::move(_prm)), space(prm.strategy_space[0], prm.strategy_space[1]) {
     for (uint32_t t = 0; t < omp_get_max_threads(); t++) {
       std::seed_seq s = {static_cast<uint32_t>(prm._seed), t};
       a_rnd.emplace_back(s);
@@ -155,7 +156,7 @@ class MultiLevelEvoGame {
   uint64_t WeightedSampleStrategySpace() {
     const int th = omp_get_thread_num();
     size_t num_spaces = (space.mem[0]+1) * (space.mem[1]+1);
-    size_t mi = static_cast<size_t>( uni(a_rnd[th]) * num_spaces );
+    auto mi = static_cast<size_t>( uni(a_rnd[th]) * (double)num_spaces );
     size_t m1 = mi % (space.mem[0]+1), m2 = mi / (space.mem[0]+1);
     StrategySpace ss(m1, m2);
     std::uniform_int_distribution<uint64_t> sample(0ull, ss.Max());
@@ -202,7 +203,7 @@ class MultiLevelEvoGame {
     for (const Species& s: species) {
       ans += s.cooperation_level;
     }
-    return ans / species.size();
+    return ans / (double)species.size();
   }
 
   // number of efficient but not FR species
@@ -232,10 +233,9 @@ class MultiLevelEvoGame {
   }
 
   bool HasSpecies(uint64_t species_id) const {
-    for (const Species& s: species) {
-      if (s.strategy_id == species_id) return true;
-    }
-    return false;
+    return std::any_of(species.begin(), species.end(), [species_id](const Species& s) {
+      return s.strategy_id == species_id;
+    });
   }
 
   double Diversity() const {
@@ -247,7 +247,7 @@ class MultiLevelEvoGame {
     }
     double entropy = 0.0;
     for (auto pair: freq) {
-      double p = pair.second / prm.M;
+      double p = pair.second / (double)prm.M;
       entropy += -p * std::log(p);
     }
     return std::exp(entropy);
@@ -259,8 +259,8 @@ class MultiLevelEvoGame {
       ans[0] += static_cast<double>(s.mem_lengths[0]);
       ans[1] += static_cast<double>(s.mem_lengths[1]);
     }
-    ans[0] /= species.size();
-    ans[1] /= species.size();
+    ans[0] /= (double)species.size();
+    ans[1] /= (double)species.size();
     return ans;
   }
 
@@ -270,8 +270,8 @@ class MultiLevelEvoGame {
       ans[0] += (double)s.automaton_sizes[0];
       ans[1] += (double)s.automaton_sizes[1];
     }
-    ans[0] /= species.size();
-    ans[1] /= species.size();
+    ans[0] /= (double)species.size();
+    ans[1] /= (double)species.size();
     return ans;
   }
 };
