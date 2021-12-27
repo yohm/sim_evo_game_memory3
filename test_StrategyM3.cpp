@@ -14,6 +14,11 @@ if (!(x)) {                                           \
   }                                                   \
 } while (0)
 
+bool IsClose(double x, double y) {
+  if (std::abs(x-y) < 1.0e-3) return true;
+  return false;
+}
+
 void test_State() {
   StateM3 s("ddcdcd");
   myassert(s.a_3 == D);
@@ -100,6 +105,11 @@ void test_BasicStrategies() {
     const auto full_a = alld.MinimizeDFAHopcroft(true).to_map();
     myassert(full_a.size() == 1);
 
+    double c_level = alld.CooperationLevel();
+    myassert(IsClose(c_level, 0.0) );
+
+    const auto payoffs = alld.Payoffs(StrategyM3::ALLC(), 2.0);
+    myassert(IsClose(payoffs[0], 2.0) && IsClose(payoffs[1], -1.0) );
   }
   {
     StrategyM3 allc = StrategyM3::ALLC();
@@ -127,6 +137,9 @@ void test_BasicStrategies() {
     myassert(simp_a.size() == 1);
     const auto full_a = allc.MinimizeDFAHopcroft(true).to_map();
     myassert(full_a.size() == 1);
+
+    double c_level = allc.CooperationLevel();
+    myassert( IsClose(c_level,1.0) );
   }
   {
     StrategyM3 tft = StrategyM3::TFT();
@@ -163,6 +176,12 @@ void test_BasicStrategies() {
     myassert(simp_automaton == simp_a);
     const auto full_a = tft.MinimizeDFAHopcroft(true).to_vec_map();
     myassert(full_automaton == full_a);
+
+    double c_level = tft.CooperationLevel();
+    myassert(IsClose(c_level,0.5));
+
+    auto payoffs = tft.Payoffs(StrategyM3::WSLS(), 2.0);
+    myassert(IsClose(payoffs[0], 0.5) && IsClose(payoffs[1], 0.5));
   }
   {
     StrategyM3 wsls = StrategyM3::WSLS();
@@ -193,6 +212,12 @@ void test_BasicStrategies() {
     myassert(simp_a.size() == 2);
     const auto full_a = wsls.MinimizeDFAHopcroft(true).to_vec_map();
     myassert(full_automaton == full_a);
+
+    double c_level = wsls.CooperationLevel();
+    myassert(IsClose(c_level,1.0));
+
+    auto payoffs = wsls.Payoffs(StrategyM3::ALLD(), 2.0);
+    myassert(IsClose(payoffs[0], -0.5) && IsClose(payoffs[1], 1.0));
   }
   {
     StrategyM3 tf2t = StrategyM3::TF2T(); // tf2t
@@ -227,6 +252,9 @@ void test_BasicStrategies() {
     myassert(simp_automaton == simp_a);
     const auto full_a = tf2t.MinimizeDFAHopcroft(true).to_vec_map();
     myassert(full_automaton == full_a);
+
+    double c_level = tf2t.CooperationLevel();
+    myassert( std::abs(1.0 - c_level) < 0.01 );
   }
 
   {
@@ -289,6 +317,9 @@ void test_TFTATFT() {
   myassert(simp_automaton == simp_a);
   const auto full_a = tft_atft.MinimizeDFAHopcroft(true).to_vec_map();
   myassert(full_auto == full_a);
+
+  double c_level = tft_atft.CooperationLevel();
+  myassert( std::abs(1.0 - c_level) < 0.01 );
 }
 
 void test_AON() {
@@ -302,6 +333,9 @@ void test_AON() {
 
     myassert(aon.IsDistinguishable());
     myassert(aon.IsDistinguishableTopo());
+
+    double c_level = aon.CooperationLevel();
+    myassert( std::abs(1.0 - c_level) < 0.01 );
   }
 }
 
@@ -346,6 +380,9 @@ void test_CAPRI() {
   myassert(simp_auto == simp_a);
   const auto full_a = capri.MinimizeDFAHopcroft(true).to_vec_map();
   myassert(full_auto == full_a);
+
+  double c_level = capri.CooperationLevel();
+  myassert( std::abs(1.0 - c_level) < 0.01 );
 }
 
 

@@ -134,6 +134,8 @@ class StrategyM3 {
   std::array<double, 64> StationaryStateEigenDense(double e = 1.0e-4, const StrategyM3 *coplayer = nullptr) const;
   std::array<double, 64> StationaryStateEigenSparse(double e = 1.0e-4, const StrategyM3 *coplayer = nullptr) const;
   std::array<double, 64> StationaryStateLapack(double e = 1.0e-4, const StrategyM3 *coplayer = nullptr) const;
+  double CooperationLevel(double e = 1.0e-4) const;
+  std::array<double,2> Payoffs(const StrategyM3& coplayer, double benefit, double e = 1.0e-4) const;
   // check efficiency. all actions must be fixed
   bool IsEfficient(double e = 1.0e-4, double th = 0.99) const { return (StationaryState(e)[0] > th); }
   bool IsEfficientTopo() const; // check efficiency using ITG

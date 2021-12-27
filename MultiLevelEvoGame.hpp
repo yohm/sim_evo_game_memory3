@@ -51,13 +51,7 @@ class MultiLevelEvoGame {
     public:
     explicit Species(uint64_t _strategy_id, double e) : strategy_id(_strategy_id) {
       StrategyM3 strategy(strategy_id);
-      auto p = strategy.StationaryState(e);
-      double c = 0.0;
-      for (size_t n = 0; n < 64; n++) {
-        StateM3 state(n);
-        if (state.a_1 == C) { c += p[n]; }
-      }
-      cooperation_level = c;
+      cooperation_level = strategy.CooperationLevel(e);
       is_efficient = strategy.IsEfficientTopo();
       is_defensible = strategy.IsDefensible();
       mem_lengths = StrategySpace::MemLengths(_strategy_id);
@@ -113,32 +107,15 @@ class MultiLevelEvoGame {
   std::vector<std::mt19937_64> a_rnd;
   std::uniform_real_distribution<double> uni;
 
-  // payoff of species i and j when the game is played by (i,j)
-  std::array<double,2> Payoffs(uint64_t strategy_i, uint64_t strategy_j) const {
-    StrategyM3 si(strategy_i);
-    StrategyM3 sj(strategy_j);
-    auto p = si.StationaryState(prm.error_rate, &sj);
-    double c_ij = 0.0, c_ji = 0.0;  // cooperation level from i to j and vice versa
-    for (size_t n = 0; n < 64; n++) {
-      StateM3 s(n);
-      if (s.a_1 == C) {
-        c_ij += p[n];
-      }
-      if (s.b_1 == C) {
-        c_ji += p[n];
-      }
-    }
-    double benefit = prm.benefit, cost = 1.0;
-    return { c_ji * benefit - c_ij * cost, c_ij * benefit - c_ji * cost };
-  }
-
   // double FixationProb(uint64_t mutant_id, uint64_t resident_id, double mutant_coop_level, double resident_coop_level) const {
   double FixationProb(const Species& mutant, const Species& resident) const {
     // \frac{1}{\rho} = \sum_{i=0}^{N-1} \exp\left( \sigma \sum_{j=1}^{i} \left[(N-j-1)s_{yy} + js_{yx} - (N-j)s_{xy} - (j-1)s_{xx} \right] \right) \\
     //                = \sum_{i=0}^{N-1} \exp\left( \frac{\sigma i}{2} \left[(-i+2N-3)s_{yy} + (i+1)s_{yx} - (-i+2N-1)s_{xy} - (i-1)s_{xx} \right] \right)
     double s_xx = (prm.benefit - 1.0) * mutant.cooperation_level;     // == Payoffs(mutant_id, mutant_id)[0];
     double s_yy = (prm.benefit - 1.0) * resident.cooperation_level;   // == Payoffs(resident_id, resident_id)[0];
-    auto xy = Payoffs(mutant.strategy_id, resident.strategy_id);
+    StrategyM3 mut(mutant.strategy_id);
+    StrategyM3 res(resident.strategy_id);
+    auto xy = mut.Payoffs(res, prm.benefit, prm.error_rate);
     double s_xy = xy[0];
     double s_yx = xy[1];
     size_t N = prm.N;

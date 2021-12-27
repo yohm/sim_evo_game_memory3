@@ -422,6 +422,32 @@ std::array<double, 64> StrategyM3::StationaryStateEigenSparse(double e, const St
   return ans;
 }
 
+double StrategyM3::CooperationLevel(double e) const {
+  auto p = StationaryState(e);
+  double c_level = 0.0;
+  for (size_t n = 0; n < 64; n++) {
+    StateM3 state(n);
+    if (state.a_1 == C) { c_level += p[n]; }
+  }
+  return c_level;
+}
+
+std::array<double,2> StrategyM3::Payoffs(const StrategyM3 &coplayer, double benefit, double e) const {
+  auto p = StationaryState(e, &coplayer);
+  double c_ij = 0.0, c_ji = 0.0;  // cooperation level from i to j and vice versa
+  for (size_t n = 0; n < 64; n++) {
+    StateM3 s(n);
+    if (s.a_1 == C) {
+      c_ij += p[n];
+    }
+    if (s.b_1 == C) {
+      c_ji += p[n];
+    }
+  }
+  constexpr double cost = 1.0;
+  return { c_ji * benefit - c_ij * cost, c_ij * benefit - c_ji * cost };
+}
+
 DirectedGraph StrategyM3::ITG() const {
   DirectedGraph g(64);
   for (int i = 0; i < 64; i++) {
