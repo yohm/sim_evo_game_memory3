@@ -101,8 +101,18 @@ class MultiLevelEvoGameLowMutation {
 
   // double FixationProb(uint64_t mutant_id, uint64_t resident_id, double mutant_coop_level, double resident_coop_level) const {
   double FixationProb(const Species& mutant, const Species& resident) const {
-    // [TODO] implement me
-    return 0.0;
+    //\Psi_{A} = 1/{1 + \exp[\sigma(\pi_{BA}-\pi_{AB})]}
+    //         * {1-\exp[  \sigma(\pi_{BA}-\pi_{AB}) + \sigma_g( \pi_{BB}-\pi_{AA} ) ]}
+    //         / {1-\exp[ M\sigma(\pi_{BA}-\pi_{AB}) +M\sigma_g( \pi_{BB}-\pi_{AA} ) ]}
+    double pi_aa = (prm.benefit - 1.0) * mutant.cooperation_level;
+    double pi_bb = (prm.benefit - 1.0) * resident.cooperation_level;
+    auto payoffs = StrategyM3(mutant.strategy_id).Payoffs(StrategyM3(resident.strategy_id), prm.benefit, prm.error_rate);
+    double pi_ab = payoffs[0], pi_ba = payoffs[1];
+
+    double x1 = 1.0 + std::exp( prm.sigma*(pi_ba - pi_ab) );
+    double x2 = 1.0 - std::exp(         prm.sigma*(pi_ba - pi_ab) +         prm.sigma_g*(pi_bb - pi_aa) );
+    double x3 = 1.0 - std::exp( prm.M * prm.sigma*(pi_ba - pi_ab) + prm.M * prm.sigma_g*(pi_bb - pi_aa) );
+    return 1.0 / x1 * x2 / x3;
   }
 
   double MigrationProb(const Species& s_target, const Species& s_focal) const {
