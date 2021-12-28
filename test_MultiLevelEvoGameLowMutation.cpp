@@ -16,9 +16,9 @@ MultiLevelEvoGameLowMutation::Parameters DefaultTestParameters() {
   prm.T_max = 1;
   prm.T_init = 0;
   prm.T_print = 1;
-  prm.M = 50;
+  prm.M = 30;
   prm.N = 2;
-  prm.benefit = 2.0;
+  prm.benefit = 1.5;
   prm.error_rate = 1.0e-3;
   prm.sigma = 10.0;
   prm.sigma_g = 10.0;
