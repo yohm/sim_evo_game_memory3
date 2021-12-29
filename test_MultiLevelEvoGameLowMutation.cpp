@@ -11,6 +11,10 @@ exit(1);                                            \
 }                                                   \
 } while (0)
 
+bool IsClose(double x, double y) {
+  return std::abs(x-y) < 1.0e-2;
+}
+
 MultiLevelEvoGameLowMutation::Parameters DefaultTestParameters() {
   MultiLevelEvoGameLowMutation::Parameters prm;
   prm.T_max = 1;
@@ -57,9 +61,63 @@ void PrintFixationProbHisto(uint64_t resident_id) {
   IC(fixation_prob_histo, fixation_prob);
 }
 
+void test_FixationProb() {
+  auto prm = DefaultTestParameters();
+  prm.N = 2;
+  prm.M = 30;
+  prm.sigma = 10.0;
+  prm.sigma_g = 10.0;
+  MultiLevelEvoGameLowMutation eco(prm);
+
+  MultiLevelEvoGameLowMutation::Species allc(StrategyM3::ALLC().ID(), prm.error_rate);
+  MultiLevelEvoGameLowMutation::Species alld(StrategyM3::ALLD().ID(), prm.error_rate);
+  MultiLevelEvoGameLowMutation::Species tft(StrategyM3::TFT().ID(), prm.error_rate);
+  MultiLevelEvoGameLowMutation::Species wsls(StrategyM3::WSLS().ID(), prm.error_rate);
+  myassert( IsClose(eco.FixationProb(alld, allc), 1.0) );
+  myassert( IsClose( eco.FixationProb(allc, alld), 0.0) );
+  myassert( IsClose( eco.FixationProb(tft, allc), 0.0) );
+  myassert( IsClose( eco.FixationProb(allc, tft), 0.45)  );
+  myassert( IsClose( eco.FixationProb(tft, wsls), 0.0) );
+  myassert( IsClose( eco.FixationProb(wsls, tft), 0.45)  );
+  myassert( IsClose( eco.FixationProb(wsls, allc), 1.0)  );
+  myassert( IsClose( eco.FixationProb(allc, wsls), 0.0)  );
+}
+
+void test_IntraFixationProb() {
+  auto prm = DefaultTestParameters();
+  prm.N = 2;
+  prm.M = 30;
+  prm.sigma = 10.0;
+  prm.sigma_g = 10.0;
+  MultiLevelEvoGameLowMutation eco(prm);
+
+  auto intra_fp = [&eco](const MultiLevelEvoGameLowMutation::Species& mut, const MultiLevelEvoGameLowMutation::Species& res) -> double {
+    double benefit = eco.prm.benefit;
+    double error = eco.prm.error_rate;
+    double pi_mut_mut = (benefit - 1.0) * mut.cooperation_level;
+    double pi_res_res = (benefit - 1.0) * res.cooperation_level;
+    auto payoffs = StrategyM3(mut.strategy_id).Payoffs(StrategyM3(res.strategy_id), benefit, error);
+    double pi_mut_res = payoffs[0], pi_res_mut = payoffs[1];
+    return eco.IntraGroupFixationProb(pi_mut_mut, pi_mut_res, pi_res_mut, pi_res_res);
+  };
+
+  MultiLevelEvoGameLowMutation::Species allc(StrategyM3::ALLC().ID(), prm.error_rate);
+  MultiLevelEvoGameLowMutation::Species alld(StrategyM3::ALLD().ID(), prm.error_rate);
+  MultiLevelEvoGameLowMutation::Species tft(StrategyM3::TFT().ID(), prm.error_rate);
+  MultiLevelEvoGameLowMutation::Species wsls(StrategyM3::WSLS().ID(), prm.error_rate);
+
+  myassert( IsClose(intra_fp(allc, alld), 0.0) );
+  myassert( IsClose(intra_fp(alld, allc), 1.0) );
+  myassert( IsClose(intra_fp(tft, allc), 0.5) );
+  myassert( IsClose(intra_fp(allc, tft), 0.5) );
+  myassert( IsClose(intra_fp(alld, wsls), 1.0) );
+  myassert( IsClose(intra_fp(wsls, tft), 0.5) );
+}
+
 int main(int argc, char* argv[]) {
   if (argc == 1) {
     std::cerr << "Testing MultiLevelEvoGameLowMutation class" << std::endl;
+    test_FixationProb();
   }
   else if (argc == 2) {
     std::regex re_d(R"(\d+)"), re_c(R"([cd]{64})");
