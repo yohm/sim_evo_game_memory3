@@ -41,6 +41,7 @@ V GetWithDef(const C<K,V,Args...>& m, K const& key, const V & defval) {
 
 void PrintFixationProbHisto(uint64_t resident_id) {
   auto prm = DefaultTestParameters();
+  std::cout << static_cast<nlohmann::json>(prm) << std::endl;
   MultiLevelEvoGameLowMutation eco(prm);
 
   MultiLevelEvoGameLowMutation::Species resident(resident_id, prm.error_rate);

@@ -23,6 +23,48 @@ void MeasureElapsed(const std::string& key) {
   prev_key = key;
 }
 
+class Counter {
+  public:
+  Counter() { Reset();}
+  double cooperation_level;
+  long defensible;
+  long efficient;
+  long friendly_rival;
+  std::array<long,2> mem_lengths;
+  std::array<long,2> automaton_sizes;
+  long count;
+  void Reset() {
+    cooperation_level = 0.0;
+    defensible = 0;
+    efficient = 0;
+    friendly_rival = 0;
+    mem_lengths[0] = 0;
+    mem_lengths[1] = 0;
+    automaton_sizes[0] = 0;
+    automaton_sizes[1] = 0;
+    count = 0;
+  }
+};
+
+void Measure(const MultiLevelEvoGameLowMutation& eco, Counter& counter) {
+  counter.cooperation_level += eco.current_species.cooperation_level;
+  if (eco.current_species.is_defensible && eco.current_species.is_efficient) {
+    counter.friendly_rival++;
+  }
+  else if (eco.current_species.is_defensible) {
+    counter.defensible++;
+  }
+  else if (eco.current_species.is_efficient) {
+    counter.efficient++;
+  }
+  const auto& mem = eco.current_species.mem_lengths;
+  counter.mem_lengths[0] += mem[0];
+  counter.mem_lengths[1] += mem[1];
+  counter.automaton_sizes[0] += eco.current_species.automaton_sizes[0];
+  counter.automaton_sizes[1] += eco.current_species.automaton_sizes[1];
+  counter.count++;
+}
+
 
 int main(int argc, char *argv[]) {
   #if defined(NDEBUG)
@@ -58,16 +100,13 @@ int main(int argc, char *argv[]) {
 
   MeasureElapsed("simulation");
 
-  double c_level_avg = 0.0;
-  size_t fr_count = 0, efficient_count = 0, defensible_count = 0;
-  double avg_mem_0 = 0.0, avg_mem_1 = 0.0, avg_mem_diff = 0.0;
-  std::array<double,2> avg_automaton_sizes = {0.0, 0.0};
-  size_t count = 0ul;
+  Counter counter_all, counter_interval;
 
   std::ofstream tout("timeseries.dat");
 
   for (size_t t = 0; t < prm.T_max; t++) {
     eco.Update();
+    Measure(eco, counter_interval);
     if (is_measuring_lifetime) {
       if (eco.current_species.strategy_id != initial_species_id) {
         lifetime = t;
@@ -78,54 +117,34 @@ int main(int argc, char *argv[]) {
       }
     }
     if (t > prm.T_init) {
-      c_level_avg += eco.current_species.cooperation_level;
-      if (eco.current_species.is_defensible && eco.current_species.is_efficient) {
-        fr_count++;
-      }
-      else if (eco.current_species.is_defensible) {
-        defensible_count++;
-      }
-      else if (eco.current_species.is_efficient) {
-        efficient_count++;
-      }
-      const auto& mem = eco.current_species.mem_lengths;
-      avg_mem_0 += mem[0];
-      avg_mem_1 += mem[1];
-      avg_mem_diff += (mem[0] - mem[1]);
-      avg_automaton_sizes[0] += eco.current_species.automaton_sizes[0];
-      avg_automaton_sizes[1] += eco.current_species.automaton_sizes[1];
-      count++;
+      Measure(eco, counter_all);
     }
     if (t % prm.T_print == prm.T_print - 1) {
-      double m_inv = 1.0 / prm.M;
-      const auto& mem = eco.current_species.mem_lengths;
-      const auto& a_sizes = eco.current_species.automaton_sizes;
-      std::string label = "O";
-      if (eco.current_species.is_defensible && eco.current_species.is_efficient) { label = "FR"; }
-      else if (eco.current_species.is_defensible) { label = "D"; }
-      else if (eco.current_species.is_efficient) { label = "E"; }
-      tout << t + 1 << ' ' << eco.current_species.cooperation_level
-                    << ' ' << label
-                    << ' ' << eco.current_species.mem_lengths[0] << ' ' << eco.current_species.mem_lengths[1]
-                    << ' ' << eco.current_species.automaton_sizes[0] << ' ' << eco.current_species.automaton_sizes[1]
-                    << std::endl;
-      // IC(t, eco.species);
+      double c_inv = 1.0 / static_cast<double>(counter_interval.count);
+      tout << t + 1
+        << ' ' << counter_interval.cooperation_level * c_inv
+        << ' ' << counter_interval.efficient * c_inv
+        << ' ' << counter_interval.defensible * c_inv
+        << ' ' << counter_interval.friendly_rival * c_inv
+        << ' ' << counter_interval.mem_lengths[0] * c_inv << ' ' << counter_interval.mem_lengths[1] * c_inv
+        << ' ' << counter_interval.automaton_sizes[0] * c_inv << ' ' << counter_interval.automaton_sizes[1] * c_inv
+        << std::endl;
+      counter_interval.Reset();
     }
   }
   tout.close();
 
   {
     nlohmann::json output;
-    double count_inv = 1.0 / (double)count;
-    output["cooperation_level"] = c_level_avg * count_inv;
-    output["friendly_rival_fraction"] = fr_count * count_inv;
-    output["efficient_fraction"] = efficient_count * count_inv;
-    output["defensible_fraction"] = defensible_count * count_inv;
-    output["mem_length_self"] = avg_mem_0 * count_inv;
-    output["mem_length_opponent"] = avg_mem_1 * count_inv;
-    output["mem_length_diff"] = avg_mem_diff * count_inv;
-    output["automaton_size_simple"] = avg_automaton_sizes[0] * count_inv;
-    output["automaton_size_full"] = avg_automaton_sizes[1] * count_inv;
+    double count_inv = 1.0 / (double)counter_all.count;
+    output["cooperation_level"] = counter_all.cooperation_level * count_inv;
+    output["friendly_rival_fraction"] = counter_all.friendly_rival * count_inv;
+    output["efficient_fraction"] = counter_all.efficient * count_inv;
+    output["defensible_fraction"] = counter_all.defensible * count_inv;
+    output["mem_length_self"] = counter_all.mem_lengths[0] * count_inv;
+    output["mem_length_opponent"] = counter_all.mem_lengths[1] * count_inv;
+    output["automaton_size_simple"] = counter_all.automaton_sizes[0] * count_inv;
+    output["automaton_size_full"] = counter_all.automaton_sizes[1] * count_inv;
     output["lifetime_init_species"] = lifetime;
     std::ofstream fout("_output.json");
     fout << output.dump(2);
