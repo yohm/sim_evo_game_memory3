@@ -18,7 +18,6 @@
 #include <regex>
 #include <Eigen/Dense>
 #include <nlohmann/json.hpp>
-#include <omp.h>
 #include "icecream-cpp/icecream.hpp"
 #include "StrategyM3.hpp"
 #include "StrategySpace.hpp"

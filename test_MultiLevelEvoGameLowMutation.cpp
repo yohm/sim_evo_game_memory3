@@ -114,48 +114,82 @@ void test_IntraFixationProb() {
   myassert( IsClose(intra_fp(wsls, tft), 0.5) );
 }
 
+StrategyM3 ParseStrategy(const std::string& str) {
+  std::regex re_d(R"(\d+)"), re_c(R"([cd]{64})");
+  if (std::regex_match(str, re_d)) {
+    uint64_t id = std::stoull(str);
+    return StrategyM3{id};
+  }
+  else if (std::regex_match(str, re_c)) {
+    return StrategyM3{str.data()};
+  }
+  else {
+    std::map<std::string,StrategyM3> m = {
+      {"ALLC", StrategyM3::ALLC()},
+      {"ALLD", StrategyM3::ALLD()},
+      {"TFT", StrategyM3::TFT()},
+      {"WSLS", StrategyM3::WSLS()},
+      {"TF2T", StrategyM3::TF2T()},
+      {"TFT-ATFT", StrategyM3::TFT_ATFT()},
+      {"CAPRI", StrategyM3::CAPRI()},
+      {"CAPRI2", StrategyM3::CAPRI2()},
+      {"AON2", StrategyM3::AON(2)},
+      {"AON3", StrategyM3::AON(3)},
+      };
+    std::string key(str);
+    if (m.find(key) != m.end()) {
+      return m.at(key);
+    }
+    else {
+      std::cerr << "Error: unknown strategy " << key << std::endl;
+      std::cerr << "  supported strategies are [";
+      for (const auto& kv: m) {
+        std::cerr << kv.first << ", ";
+      }
+      std::cerr << "]" << std::endl;
+      std::runtime_error("unknown strategy");
+    }
+  }
+  return StrategyM3{0ull};
+}
+
+void PrintFixationProbs(const StrategyM3& mutant, const StrategyM3& resident) {
+  auto prm = DefaultTestParameters();
+  MultiLevelEvoGameLowMutation eco(prm);
+  MultiLevelEvoGameLowMutation::Species res_species(resident.ID(), prm.error_rate);
+  MultiLevelEvoGameLowMutation::Species mut_species(mutant.ID(), prm.error_rate);
+  std::cout << "fixation prob: " << eco.FixationProb(mut_species, res_species) << '\n';
+
+  double benefit = eco.prm.benefit;
+  double error = eco.prm.error_rate;
+  double pi_mut_mut = (benefit - 1.0) * mut_species.cooperation_level;
+  double pi_res_res = (benefit - 1.0) * res_species.cooperation_level;
+  auto payoffs = mutant.Payoffs(resident, benefit, error);
+  double pi_mut_res = payoffs[0], pi_res_mut = payoffs[1];
+  double intra_fixation_prob = eco.IntraGroupFixationProb(pi_mut_mut, pi_mut_res, pi_res_mut, pi_res_res);
+  std::cout << "intra-fixation prob: " << intra_fixation_prob << '\n';
+
+  double migration_prob = 1.0 / (1.0 + std::exp( prm.sigma_g * (pi_res_res - pi_mut_mut) ) );
+  std::cout << "migration prob: " << migration_prob << std::endl;
+  std::cout << "payoffs: [" << pi_mut_mut << ", " << pi_res_res << "]\n";
+}
+
 int main(int argc, char* argv[]) {
   if (argc == 1) {
     std::cerr << "Testing MultiLevelEvoGameLowMutation class" << std::endl;
     test_FixationProb();
+    test_IntraFixationProb();
   }
   else if (argc == 2) {
-    std::regex re_d(R"(\d+)"), re_c(R"([cd]{64})");
-    if (std::regex_match(argv[1], re_d)) {
-      uint64_t id = std::stoull(argv[1]);
-      PrintFixationProbHisto(id);
-    }
-    else if (std::regex_match(argv[1], re_c)) {
-      StrategyM3 str(argv[1]);
-      PrintFixationProbHisto(str.ID());
-    }
-    else {
-      std::map<std::string,StrategyM3> m = {
-        {"ALLC", StrategyM3::ALLC()},
-        {"ALLD", StrategyM3::ALLD()},
-        {"TFT", StrategyM3::TFT()},
-        {"WSLS", StrategyM3::WSLS()},
-        {"TF2T", StrategyM3::TF2T()},
-        {"TFT-ATFT", StrategyM3::TFT_ATFT()},
-        {"CAPRI", StrategyM3::CAPRI()},
-        {"CAPRI2", StrategyM3::CAPRI2()},
-        {"AON2", StrategyM3::AON(2)},
-        {"AON3", StrategyM3::AON(3)},
-        };
-      std::string key(argv[1]);
-      if (m.find(key) != m.end()) {
-        PrintFixationProbHisto(m.at(key).ID());
-      }
-      else {
-        std::cerr << "Error: unknown strategy " << key << std::endl;
-        std::cerr << "  supported strategies are [";
-        for (const auto& kv: m) {
-          std::cerr << kv.first << ", ";
-        }
-        std::cerr << "]" << std::endl;
-        return 1;
-      }
-    }
+    StrategyM3 strategy = ParseStrategy(argv[1]);
+    PrintFixationProbHisto(strategy.ID());
+  }
+  else if (argc == 3) {
+    StrategyM3 mutant = ParseStrategy(argv[1]);
+    StrategyM3 resident = ParseStrategy(argv[2]);
+    std::cout << "mutant: " << argv[1] <<'\n'
+              << "resident: " << argv[2] << '\n';
+    PrintFixationProbs(mutant, resident);
   }
   else {
     throw std::runtime_error("invalid number of arguments");

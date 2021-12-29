@@ -35,6 +35,9 @@ target_include_directories(main_multi_evo_batch PRIVATE ${PROJECT_SOURCE_DIR}/ca
 target_link_libraries(main_multi_evo_batch PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX MPI::MPI_CXX)
 
 add_executable(test_MultiLevelEvoGameLowMutation test_MultiLevelEvoGameLowMutation.cpp MultiLevelEvoGameLowMutation.hpp ${SOURCE_FILES})
-target_link_libraries(test_MultiLevelEvoGameLowMutation PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
+target_link_libraries(test_MultiLevelEvoGameLowMutation PRIVATE Eigen3::Eigen lapacke)
+
+add_executable(main_multi_evo_low_mut main_multi_evo_low_mut.cpp ${SOURCE_FILES} MultiLevelEvoGameLowMutation.hpp)
+target_link_libraries(main_multi_evo_low_mut PRIVATE Eigen3::Eigen lapacke)
 
 add_executable(find_shorter_memory_FR find_shorter_memory_FR.cpp)
