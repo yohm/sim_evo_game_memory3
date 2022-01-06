@@ -544,13 +544,20 @@ void test_RandomStrategy2() {
 }
 
 StrategyM3 ParseStrategy(const std::string& str) {
-  std::regex re_d(R"(\d+)"), re_c(R"([cd]{64})");
+  std::regex re_d(R"(\d+)"), re_c(R"([cd]{64})"), re_m1(R"(m1-(\d+))");
+  std::smatch m;
   if (std::regex_match(str, re_d)) {
     uint64_t id = std::stoull(str);
     return StrategyM3{id};
   }
   else if (std::regex_match(str, re_c)) {
     return StrategyM3{str.data()};
+  }
+  else if (std::regex_match(str, m, re_m1)) {
+    uint64_t i = std::strtoull(m[1].str().data(), nullptr, 10ull);
+    StrategySpace ss(1, 1);
+    uint64_t gid = ss.ToGlobalID(i);
+    return StrategyM3{gid};
   }
   else {
     std::map<std::string,StrategyM3> m = {
@@ -565,18 +572,18 @@ StrategyM3 ParseStrategy(const std::string& str) {
       {"AON2", StrategyM3::AON(2)},
       {"AON3", StrategyM3::AON(3)},
     };
-    std::string key(str);
-    if (m.find(key) != m.end()) {
-      return m.at(key);
+    if (m.find(str) != m.end()) {
+      return m.at(str);
     }
     else {
-      std::cerr << "Error: unknown strategy " << key << std::endl;
+      std::cerr << "Error: unknown strategy " << str << std::endl;
       std::cerr << "  supported strategies are [";
       for (const auto& kv: m) {
         std::cerr << kv.first << ", ";
       }
-      std::cerr << "]" << std::endl;
-      std::runtime_error("unknown strategy");
+      std::cerr << "]" << "\n" << "Or\n  'm1-[0-15]'" << std::endl;
+
+      throw std::runtime_error("unknown strategy");
     }
   }
   return StrategyM3{0ull};
