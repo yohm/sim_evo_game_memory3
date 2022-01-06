@@ -615,10 +615,16 @@ int main(int argc, char* argv[]) {
     std::cout << s1.ToString() << " vs " << s2.ToString() << '\n';
     auto ss = s1.StationaryState(0.0001, &s2);
     std::cout << std::fixed << std::setprecision(2);
+    double s1_c = 0.0, s2_c = 0.0;
     for (size_t i = 0; i < 64; i++) {
-      std::cout << StateM3(i) << "| " << ss[i] << "    ";
+      StateM3 state = i;
+      std::cout << state << "| " << ss[i] << "  ";
       if (i % 8 == 7) std::cout << "\n";
+      if (state.a_1 == Action::C) s1_c += ss[i];
+      if (state.b_1 == Action::C) s2_c += ss[i];
     }
+    std::cout << "Payoff-1: " << s2_c << " b - " << s1_c << " c\n";
+    std::cout << "Payoff-2: " << s1_c << " b - " << s2_c << " c\n";
   }
   else {
     std::cerr << "Error: unsupported usage" << std::endl;
