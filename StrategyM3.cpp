@@ -32,7 +32,8 @@ void StrategyM3::Inspect(std::ostream& out) const {
       << "IsEfficient: " << IsEfficient() << "\n"
       << "IsDefensible: " << is_defensible << "\n"
       << "IsDefenisbleDFA: " << IsDefensibleDFA() << "\n"
-      << "IsDistinguishable: " << IsDistinguishableTopo() << "\n";
+      << "IsDistinguishable: " << IsDistinguishableTopo() << "\n"
+      << "CooperationLevel: " << CooperationLevel() << "\n";
   if (is_efficient) {
     std::vector<int> path1 = {1};
     while (true) {
