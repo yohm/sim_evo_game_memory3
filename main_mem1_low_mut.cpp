@@ -112,5 +112,17 @@ int main(int argc, char *argv[]) {
   auto px = CalculateEquilibrium(psi);
   IC(px);
 
+  // calculate unconditional fixation time matrix
+  // t_1 = \frac{M(M-1) { 1 + \exp[ \sigma_g(\pi_B - \pi_A)]} }{(1 - \eta^M)\rho_A} \sum_{l=1}^{M-1} \frac{1-\eta^{l}}{l(M-l)}
+  //     = M(M-1){ 1 + \exp[ \sigma_g(\pi_B - \pi_A)]} / (1 - \eta^M)\rho_A}
+  //       * \sum_{l=1}^{M-1} (1-\eta^{l}) / l(M-l)
+  std::vector<std::vector<double>> t_1(N_SPECIES, std::vector<double>(N_SPECIES, 0.0));
+  for (size_t i = 0; i < N_SPECIES; i++) {
+    for (size_t j = 0; j < N_SPECIES; j++) {
+      t_1[i][j] = eco.UnconditionalFixationTime(v_species[i], v_species[j]);
+    }
+  }
+  IC(t_1);
+
   return 0;
 }

@@ -148,6 +148,40 @@ class MultiLevelEvoGameLowMutation {
     return 1.0 / rho_inv;
   }
 
+  double UnconditionalFixationTime(const Species& mutant, const Species& resident) const {
+    double pi_mut_mut = (prm.benefit - 1.0) * mutant.cooperation_level;
+    double pi_res_res = (prm.benefit - 1.0) * resident.cooperation_level;
+    auto payoffs = StrategyM3(mutant.strategy_id).Payoffs(StrategyM3(resident.strategy_id), prm.benefit, prm.error_rate);
+    double pi_mut_res = payoffs[0], pi_res_mut = payoffs[1];
+
+    double rho_mut = IntraGroupFixationProb(pi_mut_mut, pi_mut_res, pi_res_mut, pi_res_res);
+    double rho_res = IntraGroupFixationProb(pi_res_res, pi_res_mut, pi_mut_res, pi_mut_mut);
+    // \eta = Q_i^{-}/Q_i^{+} = \rho_B / \rho_A * \exp[ \sigma_g (\pi_B - \pi_A) ]
+    double eta = rho_res / rho_mut * std::exp( prm.sigma_g * (pi_res_res - pi_mut_mut) );
+
+    // for eta == 1
+    // t_1 = (M-1){ 1 + \exp[ \sigma_g(\pi_B - \pi_A)]} / \rho_A
+    //       * \sum_{l=1}^{M-1}\frac{1}{l}
+    constexpr double tolerance = 1.0e-8;
+    if (std::abs(eta - 1.0) < tolerance) {  // eta == 1
+      double x = static_cast<double>(prm.M-1) * (1.0 + std::exp( prm.sigma_g * (pi_res_res - pi_mut_mut)) ) / rho_mut;
+      double sum = 0.0;
+      for (size_t l = 1; l < prm.M; l++) { sum += 1.0 / static_cast<double>(l); }
+      return x * sum;
+    }
+
+    // for eta != 1
+    // t_1 = M(M-1){ 1 + \exp[ \sigma_g(\pi_B - \pi_A)]} / (1 - \eta^M)\rho_A}
+    //       * \sum_{l=1}^{M-1} (1-\eta^{l}) / l(M-l)
+    double num1 = prm.M * (prm.M-1) * (1.0 + std::exp( prm.sigma_g * (pi_res_res - pi_mut_mut) ));
+    double den1 = (1.0 - std::pow(eta, prm.M)) * rho_mut;
+    double sum = 0.0;
+    for (size_t l = 1; l < prm.M; l++) {
+      sum += (1.0 - std::pow(eta, l)) / static_cast<double>(l*(prm.M-l));
+    }
+    return num1 / den1 * sum;
+  }
+
   uint64_t UniformSampleStrategySpace() {
     std::uniform_int_distribution<uint64_t> sample(0ull, space.Max());
     return space.ToGlobalID( sample(rnd) );
