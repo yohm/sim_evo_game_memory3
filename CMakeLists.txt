@@ -40,4 +40,7 @@ target_link_libraries(test_MultiLevelEvoGameLowMutation PRIVATE Eigen3::Eigen la
 add_executable(main_multi_evo_low_mut main_multi_evo_low_mut.cpp ${SOURCE_FILES} MultiLevelEvoGameLowMutation.hpp)
 target_link_libraries(main_multi_evo_low_mut PRIVATE Eigen3::Eigen lapacke)
 
+add_executable(main_mem1_low_mut main_mem1_low_mut.cpp ${SOURCE_FILES} MultiLevelEvoGameLowMutation.hpp)
+target_link_libraries(main_mem1_low_mut PRIVATE Eigen3::Eigen lapacke)
+
 add_executable(find_shorter_memory_FR find_shorter_memory_FR.cpp)
