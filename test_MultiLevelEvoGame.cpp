@@ -25,6 +25,7 @@ MultiLevelEvoGame::Parameters DefaultTestParameters() {
   prm.p_mu = 0.5;
   prm.strategy_space = {3,3};
   prm.initial_condition = "random";
+  prm.weighted_sampling = 1;
   prm._seed = 1234567890ull;
   return prm;
 }
@@ -87,7 +88,7 @@ void test_AON3() {
     std::map<double,int> histo;
     double avg = 0.0;
     for (size_t i = 0; i < 1000; i++) {
-      uint64_t mut_id = eco.WeightedSampleStrategySpace();
+      uint64_t mut_id = eco.SampleStrategySpace();
       // uint64_t mut_id = eco.UniformSampleStrategySpace();
       MultiLevelEvoGame::Species mut(mut_id, eco.prm.error_rate);
       double f = eco.IntraGroupFixationProb(mut, resident);
@@ -114,8 +115,7 @@ void PrintFixationProbs(uint64_t resident_id) {
   double sum = 0.0;
   size_t N = 1000;
   for (size_t i = 0; i < N; i++) {
-    uint64_t mut_id = eco.WeightedSampleStrategySpace();
-    // uint64_t mut_id = eco.UniformSampleStrategySpace();
+    uint64_t mut_id = eco.SampleStrategySpace();
     MultiLevelEvoGame::Species mut(mut_id, eco.prm.error_rate);
     double f = eco.IntraGroupFixationProb(mut, resident);
     sum += f;

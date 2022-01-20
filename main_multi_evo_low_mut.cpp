@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
   std::uniform_real_distribution<double> uni;
 
   for (size_t t = 0; t < prm.T_max; t++) {
-    uint64_t mut_id = eco.WeightedSampleStrategySpace();
+    uint64_t mut_id = eco.SampleStrategySpace();
     MultiLevelEvoGame::Species mut(mut_id, prm.error_rate);
     double prob = eco.FixationProbLowMutation(mut, current_species);
     if (uni(eco.a_rnd[0]) < prob) {

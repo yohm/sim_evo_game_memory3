@@ -28,6 +28,7 @@ MultiLevelEvoGame::Parameters DefaultTestParameters() {
   prm.sigma_g = 10.0;
   prm.strategy_space = {3,3};
   prm.initial_condition = "random";
+  prm.weighted_sampling = 1;
   prm.p_mu = 0.0;
   prm._seed = 1234567890ull;
   return prm;
@@ -51,7 +52,7 @@ void PrintFixationProbHisto(uint64_t resident_id) {
   double sum = 0.0;
   size_t COUNT = 1000;
   for (size_t i = 0; i < COUNT; i++) {
-    uint64_t mut_id = eco.WeightedSampleStrategySpace();
+    uint64_t mut_id = eco.SampleStrategySpace();
     MultiLevelEvoGame::Species mut(mut_id, eco.prm.error_rate);
     double f = eco.FixationProbLowMutation(mut, resident);
     sum += f;

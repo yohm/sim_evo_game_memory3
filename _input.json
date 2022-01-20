@@ -10,6 +10,7 @@
   "sigma_g": 10.0,
   "p_mu": 0.5,
   "strategy_space": [3, 3],
+  "weighted_sampling": 1,
   "initial_condition": "random",
   "_seed": 1234567890
 }
