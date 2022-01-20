@@ -7,7 +7,7 @@
 #include <array>
 #include <chrono>
 #include <regex>
-#include "MultiLevelEvoGameLowMutation.hpp"
+#include "MultiLevelEvoGame.hpp"
 #include "icecream-cpp/icecream.hpp"
 
 
@@ -46,22 +46,22 @@ class Counter {
   }
 };
 
-void Measure(const MultiLevelEvoGameLowMutation& eco, Counter& counter) {
-  counter.cooperation_level += eco.current_species.cooperation_level;
-  if (eco.current_species.is_defensible && eco.current_species.is_efficient) {
+void Measure(const MultiLevelEvoGame::Species& current_species, Counter& counter) {
+  counter.cooperation_level += current_species.cooperation_level;
+  if (current_species.is_defensible && current_species.is_efficient) {
     counter.friendly_rival++;
   }
-  else if (eco.current_species.is_defensible) {
+  else if (current_species.is_defensible) {
     counter.defensible++;
   }
-  else if (eco.current_species.is_efficient) {
+  else if (current_species.is_efficient) {
     counter.efficient++;
   }
-  const auto& mem = eco.current_species.mem_lengths;
+  const auto& mem = current_species.mem_lengths;
   counter.mem_lengths[0] += mem[0];
   counter.mem_lengths[1] += mem[1];
-  counter.automaton_sizes[0] += eco.current_species.automaton_sizes[0];
-  counter.automaton_sizes[1] += eco.current_species.automaton_sizes[1];
+  counter.automaton_sizes[0] += current_species.automaton_sizes[0];
+  counter.automaton_sizes[1] += current_species.automaton_sizes[1];
   counter.count++;
 }
 
@@ -78,23 +78,24 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  MultiLevelEvoGameLowMutation::Parameters prm;
+  MultiLevelEvoGame::Parameters prm;
   {
     std::ifstream fin(argv[1]);
     nlohmann::json input;
     fin >> input;
-    prm = input.get<MultiLevelEvoGameLowMutation::Parameters>();
+    prm = input.get<MultiLevelEvoGame::Parameters>();
   }
 
   MeasureElapsed("initialize");
 
-  MultiLevelEvoGameLowMutation eco(prm);
+  MultiLevelEvoGame eco(prm);
+  MultiLevelEvoGame::Species current_species = eco.species[0];
 
   uint64_t initial_species_id;
   bool is_measuring_lifetime = false;
   int64_t lifetime = -1;
   if (prm.initial_condition != "random") {
-    initial_species_id = eco.current_species.strategy_id;
+    initial_species_id = current_species.strategy_id;
     is_measuring_lifetime = true;
   }
 
@@ -103,12 +104,19 @@ int main(int argc, char *argv[]) {
   Counter counter_all, counter_interval;
 
   std::ofstream tout("timeseries.dat");
+  std::uniform_real_distribution<double> uni;
 
   for (size_t t = 0; t < prm.T_max; t++) {
-    eco.Update();
-    Measure(eco, counter_interval);
+    uint64_t mut_id = eco.WeightedSampleStrategySpace();
+    MultiLevelEvoGame::Species mut(mut_id, prm.error_rate);
+    double prob = eco.FixationProbLowMutation(mut, current_species);
+    if (uni(eco.a_rnd[0]) < prob) {
+      current_species = mut;
+    }
+
+    Measure(current_species, counter_interval);
     if (is_measuring_lifetime) {
-      if (eco.current_species.strategy_id != initial_species_id) {
+      if (current_species.strategy_id != initial_species_id) {
         lifetime = t;
         is_measuring_lifetime = false;
       }
@@ -117,7 +125,7 @@ int main(int argc, char *argv[]) {
       }
     }
     if (t > prm.T_init) {
-      Measure(eco, counter_all);
+      Measure(current_species, counter_all);
     }
     if (t % prm.T_print == prm.T_print - 1) {
       double c_inv = 1.0 / static_cast<double>(counter_interval.count);
@@ -152,7 +160,7 @@ int main(int argc, char *argv[]) {
   }
 
   {
-    nlohmann::json j = eco.current_species;
+    nlohmann::json j = current_species;
     std::ofstream fout("final_state.json");
     fout << j.dump(2);
     fout.close();

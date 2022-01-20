@@ -108,7 +108,6 @@ class MultiLevelEvoGame {
   std::vector<std::mt19937_64> a_rnd;
   std::uniform_real_distribution<double> uni;
 
-  // double IntraGroupFixationProb(uint64_t mutant_id, uint64_t resident_id, double mutant_coop_level, double resident_coop_level) const {
   double IntraGroupFixationProb(const Species& mutant, const Species& resident) const {
     // \frac{1}{\rho} = \sum_{i=0}^{N-1} \exp\left( \sigma \sum_{j=1}^{i} \left[(N-j-1)s_{yy} + js_{yx} - (N-j)s_{xy} - (j-1)s_{xx} \right] \right) \\
     //                = \sum_{i=0}^{N-1} \exp\left( \frac{\sigma i}{2} \left[(-i+2N-3)s_{yy} + (i+1)s_{yx} - (-i+2N-1)s_{xy} - (i-1)s_{xx} \right] \right)
@@ -145,6 +144,61 @@ class MultiLevelEvoGame {
     double p_target = (prm.benefit - 1.0) * s_target.cooperation_level;
     // f_{A\to B} = { 1 + \exp[ \sigma_g (s_A - s_B) ] }^{-1}
     return 1.0 / (1.0 + std::exp( prm.sigma_g * (pi - p_target) ));
+  }
+
+  double FixationProbLowMutation(const Species& mutant, const Species& resident) const {
+    //\Psi_{A} = 1/{1 + \exp[\sigma(\pi_{BA}-\pi_{AB})]}
+    //         * {1-\exp[  \sigma(\pi_{BA}-\pi_{AB}) + \sigma_g( \pi_{BB}-\pi_{AA} ) ]}
+    //         / {1-\exp[ M\sigma(\pi_{BA}-\pi_{AB}) +M\sigma_g( \pi_{BB}-\pi_{AA} ) ]}
+    double pi_mut = (prm.benefit - 1.0) * mutant.cooperation_level;
+    double pi_res = (prm.benefit - 1.0) * resident.cooperation_level;
+
+    double rho_mut = IntraGroupFixationProb(mutant, resident);
+    double rho_res = IntraGroupFixationProb(resident, mutant);
+    // \eta = Q_i^{-}/Q_i^{+} = \rho_B / \rho_A * \exp[ \sigma_g (\pi_B - \pi_A) ]
+    double eta = rho_res / rho_mut * std::exp( prm.sigma_g * (pi_res - pi_mut) );
+    constexpr double tolerance = 1.0e-8;
+    if (std::abs(eta - 1.0) < tolerance) {  // eta == 1
+      return rho_mut / static_cast<double>(prm.M);
+    }
+    return rho_mut * (1.0 - eta) / (1.0 - std::pow(eta, prm.M));
+
+    // when N == 2
+    // double x1 = 1.0 + std::exp( prm.sigma*(pi_ba - pi_ab) );
+    // double x2 = 1.0 - std::exp(         prm.sigma*(pi_ba - pi_ab) +         prm.sigma_g*(pi_bb - pi_aa) );
+    // double x3 = 1.0 - std::exp( prm.M * prm.sigma*(pi_ba - pi_ab) + prm.M * prm.sigma_g*(pi_bb - pi_aa) );
+    // return 1.0 / x1 * x2 / x3;
+  }
+
+  double UnconditionalFixationTimeLowMutation(const Species& mutant, const Species& resident) const {
+    double pi_mut_mut = (prm.benefit - 1.0) * mutant.cooperation_level;
+    double pi_res_res = (prm.benefit - 1.0) * resident.cooperation_level;
+    double rho_mut = IntraGroupFixationProb(mutant, resident);
+    double rho_res = IntraGroupFixationProb(resident, mutant);
+    // \eta = Q_i^{-}/Q_i^{+} = \rho_B / \rho_A * \exp[ \sigma_g (\pi_B - \pi_A) ]
+    double eta = rho_res / rho_mut * std::exp( prm.sigma_g * (pi_res_res - pi_mut_mut) );
+
+    // for eta == 1
+    // t_1 = (M-1){ 1 + \exp[ \sigma_g(\pi_B - \pi_A)]} / \rho_A
+    //       * \sum_{l=1}^{M-1}\frac{1}{l}
+    constexpr double tolerance = 1.0e-8;
+    if (std::abs(eta - 1.0) < tolerance) {  // eta == 1
+      double x = static_cast<double>(prm.M-1) * (1.0 + std::exp( prm.sigma_g * (pi_res_res - pi_mut_mut)) ) / rho_mut;
+      double sum = 0.0;
+      for (size_t l = 1; l < prm.M; l++) { sum += 1.0 / static_cast<double>(l); }
+      return x * sum;
+    }
+
+    // for eta != 1
+    // t_1 = M(M-1){ 1 + \exp[ \sigma_g(\pi_B - \pi_A)]} / (1 - \eta^M)\rho_A}
+    //       * \sum_{l=1}^{M-1} (1-\eta^{l}) / l(M-l)
+    double num1 = prm.M * (prm.M-1) * (1.0 + std::exp( prm.sigma_g * (pi_res_res - pi_mut_mut) ));
+    double den1 = (1.0 - std::pow(eta, prm.M)) * rho_mut;
+    double sum = 0.0;
+    for (size_t l = 1; l < prm.M; l++) {
+      sum += (1.0 - std::pow(eta, l)) / static_cast<double>(l*(prm.M-l));
+    }
+    return num1 / den1 * sum;
   }
 
   uint64_t UniformSampleStrategySpace() {

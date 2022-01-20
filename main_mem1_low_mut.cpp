@@ -6,7 +6,8 @@
 #include <vector>
 #include <array>
 #include <chrono>
-#include "MultiLevelEvoGameLowMutation.hpp"
+#include <Eigen/Dense>
+#include "MultiLevelEvoGame.hpp"
 #include "icecream-cpp/icecream.hpp"
 
 
@@ -63,7 +64,7 @@ int main(int argc, char *argv[]) {
 
   Eigen::initParallel();
 
-  MultiLevelEvoGameLowMutation::Parameters prm;
+  MultiLevelEvoGame::Parameters prm;
   prm.benefit = 2.0;
   prm.error_rate = 1.0e-3;
   prm.N = 2;
@@ -73,12 +74,12 @@ int main(int argc, char *argv[]) {
   prm.strategy_space = {1, 1};
   prm.initial_condition = "random";
 
-  MultiLevelEvoGameLowMutation eco(prm);
+  MultiLevelEvoGame eco(prm);
 
   // prepare memory-1 species
   StrategySpace ss(1, 1);
   constexpr size_t N_SPECIES = 16;
-  std::vector<MultiLevelEvoGameLowMutation::Species> v_species;
+  std::vector<MultiLevelEvoGame::Species> v_species;
   for (uint64_t i = 0; i < N_SPECIES; i++) {
     uint64_t gid = ss.ToGlobalID(i);
     v_species.emplace_back(gid, prm.error_rate);
@@ -103,7 +104,7 @@ int main(int argc, char *argv[]) {
   // psi[i][j] => fixation probability of mutant i into resident j community
   for (size_t i = 0; i < N_SPECIES; i++) {
     for (size_t j = 0; j < N_SPECIES; j++) {
-      psi[i][j] = eco.FixationProb(v_species[i], v_species[j]);
+      psi[i][j] = eco.FixationProbLowMutation(v_species[i], v_species[j]);
     }
   }
   IC(psi);
@@ -119,7 +120,7 @@ int main(int argc, char *argv[]) {
   std::vector<std::vector<double>> t_1(N_SPECIES, std::vector<double>(N_SPECIES, 0.0));
   for (size_t i = 0; i < N_SPECIES; i++) {
     for (size_t j = 0; j < N_SPECIES; j++) {
-      t_1[i][j] = eco.UnconditionalFixationTime(v_species[i], v_species[j]);
+      t_1[i][j] = eco.UnconditionalFixationTimeLowMutation(v_species[i], v_species[j]);
     }
   }
   IC(t_1);
