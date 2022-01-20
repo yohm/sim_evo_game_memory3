@@ -34,8 +34,8 @@ add_executable(main_multi_evo_batch main_multi_evo_batch.cpp ${SOURCE_FILES} Mul
 target_include_directories(main_multi_evo_batch PRIVATE ${PROJECT_SOURCE_DIR}/caravan-lib)
 target_link_libraries(main_multi_evo_batch PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX MPI::MPI_CXX)
 
-add_executable(test_MultiLevelEvoGameLowMutation test_MultiLevelEvoGameLowMutation.cpp MultiLevelEvoGameLowMutation.hpp ${SOURCE_FILES})
-target_link_libraries(test_MultiLevelEvoGameLowMutation PRIVATE Eigen3::Eigen lapacke)
+add_executable(test_MultiLevelEvoGameLowMutation test_MultiLevelEvoGameLowMutation.cpp ${SOURCE_FILES})
+target_link_libraries(test_MultiLevelEvoGameLowMutation PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
 
 add_executable(main_multi_evo_low_mut main_multi_evo_low_mut.cpp ${SOURCE_FILES})
 target_link_libraries(main_multi_evo_low_mut PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
