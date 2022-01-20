@@ -40,12 +40,12 @@ void test_IntraGroupSelection() {
   MultiLevelEvoGame::Species wsls(StrategyM3::WSLS().ID(), prm.error_rate);
 
   IC( allc, alld, capri, aon3, wsls );
-  IC( eco.FixationProb(allc, alld) );
-  IC( eco.FixationProb(alld, allc) );
-  IC( eco.FixationProb(alld, aon3) );
-  IC( eco.FixationProb(alld, capri) );
-  IC( eco.FixationProb(capri, aon3) );
-  IC( eco.FixationProb(aon3, capri) );
+  IC(eco.IntraGroupFixationProb(allc, alld) );
+  IC(eco.IntraGroupFixationProb(alld, allc) );
+  IC(eco.IntraGroupFixationProb(alld, aon3) );
+  IC(eco.IntraGroupFixationProb(alld, capri) );
+  IC(eco.IntraGroupFixationProb(capri, aon3) );
+  IC(eco.IntraGroupFixationProb(aon3, capri) );
 }
 
 void test_InterGroupSelection() {
@@ -58,12 +58,12 @@ void test_InterGroupSelection() {
   MultiLevelEvoGame::Species aon3(StrategyM3::AON(3).ID(), prm.error_rate);
   MultiLevelEvoGame::Species wsls(StrategyM3::WSLS().ID(), prm.error_rate);
 
-  IC( eco.SelectionProb(allc, capri) );
-  IC( eco.SelectionProb(capri, allc) );
-  IC( eco.SelectionProb(alld, aon3) );
-  IC( eco.SelectionProb(alld, capri) );
-  IC( eco.SelectionProb(aon3, capri) );
-  IC( eco.SelectionProb(capri, aon3) );
+  IC(eco.InterGroupImitationProb(allc, capri) );
+  IC(eco.InterGroupImitationProb(capri, allc) );
+  IC(eco.InterGroupImitationProb(alld, aon3) );
+  IC(eco.InterGroupImitationProb(alld, capri) );
+  IC(eco.InterGroupImitationProb(aon3, capri) );
+  IC(eco.InterGroupImitationProb(capri, aon3) );
 }
 
 template <template<class,class,class...> class C, typename K, typename V, typename... Args>
@@ -90,7 +90,7 @@ void test_AON3() {
       uint64_t mut_id = eco.WeightedSampleStrategySpace();
       // uint64_t mut_id = eco.UniformSampleStrategySpace();
       MultiLevelEvoGame::Species mut(mut_id, eco.prm.error_rate);
-      double f = eco.FixationProb(mut, resident);
+      double f = eco.IntraGroupFixationProb(mut, resident);
       avg += f;
       double key = std::round(f * 10.0) / 10.0;
       histo[key] = GetWithDef(histo, key, 0) + 1;
@@ -117,7 +117,7 @@ void PrintFixationProbs(uint64_t resident_id) {
     uint64_t mut_id = eco.WeightedSampleStrategySpace();
     // uint64_t mut_id = eco.UniformSampleStrategySpace();
     MultiLevelEvoGame::Species mut(mut_id, eco.prm.error_rate);
-    double f = eco.FixationProb(mut, resident);
+    double f = eco.IntraGroupFixationProb(mut, resident);
     sum += f;
     double key = std::round(f * 10.0) / 10.0;
     fixation_prob_histo[key] = GetWithDef(fixation_prob_histo, key, 0) + 1;

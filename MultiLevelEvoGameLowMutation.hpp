@@ -98,7 +98,6 @@ class MultiLevelEvoGameLowMutation {
   std::mt19937_64 rnd;
   std::uniform_real_distribution<double> uni;
 
-  // double FixationProb(uint64_t mutant_id, uint64_t resident_id, double mutant_coop_level, double resident_coop_level) const {
   double FixationProb(const Species& mutant, const Species& resident) const {
     //\Psi_{A} = 1/{1 + \exp[\sigma(\pi_{BA}-\pi_{AB})]}
     //         * {1-\exp[  \sigma(\pi_{BA}-\pi_{AB}) + \sigma_g( \pi_{BB}-\pi_{AA} ) ]}

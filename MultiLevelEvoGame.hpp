@@ -108,8 +108,8 @@ class MultiLevelEvoGame {
   std::vector<std::mt19937_64> a_rnd;
   std::uniform_real_distribution<double> uni;
 
-  // double FixationProb(uint64_t mutant_id, uint64_t resident_id, double mutant_coop_level, double resident_coop_level) const {
-  double FixationProb(const Species& mutant, const Species& resident) const {
+  // double IntraGroupFixationProb(uint64_t mutant_id, uint64_t resident_id, double mutant_coop_level, double resident_coop_level) const {
+  double IntraGroupFixationProb(const Species& mutant, const Species& resident) const {
     // \frac{1}{\rho} = \sum_{i=0}^{N-1} \exp\left( \sigma \sum_{j=1}^{i} \left[(N-j-1)s_{yy} + js_{yx} - (N-j)s_{xy} - (j-1)s_{xx} \right] \right) \\
     //                = \sum_{i=0}^{N-1} \exp\left( \frac{\sigma i}{2} \left[(-i+2N-3)s_{yy} + (i+1)s_{yx} - (-i+2N-1)s_{xy} - (i-1)s_{xx} \right] \right)
     double s_xx = (prm.benefit - 1.0) * mutant.cooperation_level;     // == Payoffs(mutant_id, mutant_id)[0];
@@ -140,7 +140,7 @@ class MultiLevelEvoGame {
     return 1.0 / rho_inv;
   }
 
-  double SelectionProb(const Species& s_target, const Species& s_focal) const {
+  double InterGroupImitationProb(const Species& s_target, const Species& s_focal) const {
     double pi = (prm.benefit - 1.0) * s_focal.cooperation_level;
     double p_target = (prm.benefit - 1.0) * s_target.cooperation_level;
     // f_{A\to B} = { 1 + \exp[ \sigma_g (s_A - s_B) ] }^{-1}
@@ -168,7 +168,7 @@ class MultiLevelEvoGame {
     return gid;
   }
 
-  void Update() {
+  void UpdateParallel() {
     std::vector<Species> candidates = species;
     #pragma omp parallel for
     for (size_t i = 0; i < prm.M; i++) {
@@ -180,7 +180,7 @@ class MultiLevelEvoGame {
       else {
         std::uniform_int_distribution<size_t> dist(1, prm.M-1);
         size_t target = static_cast<size_t>(i + dist(a_rnd[th])) % prm.M;
-        double p = SelectionProb(species[target], species[i]);
+        double p = InterGroupImitationProb(species[target], species[i]);
         if (uni(a_rnd[th]) < p) {
           candidates[i] = species[target];
         }
@@ -190,7 +190,7 @@ class MultiLevelEvoGame {
     #pragma omp parallel for
     for (size_t i = 0; i < prm.M; i++) {
       if (candidates[i].strategy_id == species[i].strategy_id) continue;
-      double f = FixationProb(candidates[i], species[i]);
+      double f = IntraGroupFixationProb(candidates[i], species[i]);
       int th = omp_get_thread_num();
       if (uni(a_rnd[th]) < f) {
         species[i] = candidates[i];

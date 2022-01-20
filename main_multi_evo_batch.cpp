@@ -35,7 +35,7 @@ json RunSimulation(const MultiLevelEvoGame::Parameters& prm) {
   size_t count = 0ul;
 
   for (size_t t = 0; t < prm.T_max; t++) {
-    eco.Update();
+    eco.UpdateParallel();
     if (is_measuring_lifetime) {
       if (!eco.HasSpecies(initial_species_id)) {
         lifetime = t;
