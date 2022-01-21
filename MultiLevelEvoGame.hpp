@@ -39,12 +39,13 @@ class MultiLevelEvoGame {
     double p_mu;  // probability of introducing a mutant
     std::array<size_t,2> strategy_space;
     int weighted_sampling;  // 1: weighted sampling, 0: uniform sampling
+    int parallel_update;    // 1: parallel update, 0: serial update
     std::string initial_condition; // "random", "TFT", "WSLS", "TFT-ATFT", "CAPRI"
     uint64_t _seed;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Parameters, T_max, T_print, T_init,
       M, N, benefit, error_rate, sigma, sigma_g, p_mu,
-      strategy_space, weighted_sampling, initial_condition, _seed);
+      strategy_space, weighted_sampling, parallel_update, initial_condition, _seed);
   };
 
 
@@ -104,6 +105,9 @@ class MultiLevelEvoGame {
     }
     if (prm.weighted_sampling < 0 || prm.weighted_sampling > 1) {
       throw std::runtime_error("unknown sampling type: Use 0(uniform) or 1(weighted)");
+    }
+    if (prm.parallel_update < 0 || prm.parallel_update > 1) {
+      throw std::runtime_error("unknown update scheme: Use 0(serial update) or 1(paralell update)");
     }
   };
   Parameters prm;
@@ -230,24 +234,35 @@ class MultiLevelEvoGame {
     return (prm.weighted_sampling==1) ? WeightedSampleStrategySpace() : UniformSampleStrategySpace();
   }
 
-  void UpdateSerial() {
-    std::uniform_int_distribution<size_t> d0(0, prm.M-1);
-    size_t res_index = d0(a_rnd[0]);
-    Species resident = species[res_index];
-    if (uni(a_rnd[0]) < prm.p_mu) {  // mutation
-      uint64_t mut_id = SampleStrategySpace();
-      Species mutant(mut_id, prm.error_rate);
-      double f = IntraGroupFixationProb(mutant, resident);
-      if (uni(a_rnd[0]) < f) species[res_index] = mutant;
+  void Update() {
+    if (prm.parallel_update == 1) {
+      UpdateParallel();
     }
-    else {  // migration
-      std::uniform_int_distribution<size_t> d1(1, prm.M-1);
-      size_t mig_index = static_cast<size_t>(res_index + d1(a_rnd[0])) % prm.M;
-      Species immigrant = species[mig_index];
-      double p = InterGroupImitationProb(immigrant, resident);
-      double f = IntraGroupFixationProb(immigrant, resident);
-      if (uni(a_rnd[0]) < p*f) {
-        species[res_index] = immigrant;
+    else {
+      UpdateSerial();
+    }
+  }
+
+  void UpdateSerial() {
+    for (int t = 0; t < prm.M; t++) {
+      std::uniform_int_distribution<size_t> d0(0, prm.M-1);
+      size_t res_index = d0(a_rnd[0]);
+      Species resident = species[res_index];
+      if (uni(a_rnd[0]) < prm.p_mu) {  // mutation
+        uint64_t mut_id = SampleStrategySpace();
+        Species mutant(mut_id, prm.error_rate);
+        double f = IntraGroupFixationProb(mutant, resident);
+        if (uni(a_rnd[0]) < f) species[res_index] = mutant;
+      }
+      else {  // migration
+        std::uniform_int_distribution<size_t> d1(1, prm.M-1);
+        size_t mig_index = static_cast<size_t>(res_index + d1(a_rnd[0])) % prm.M;
+        Species immigrant = species[mig_index];
+        double p = InterGroupImitationProb(immigrant, resident);
+        double f = IntraGroupFixationProb(immigrant, resident);
+        if (uni(a_rnd[0]) < p*f) {
+          species[res_index] = immigrant;
+        }
       }
     }
   }

@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
   std::ofstream tout("timeseries.dat");
 
   for (size_t t = 0; t < prm.T_max; t++) {
-    eco.UpdateParallel();
+    eco.Update();
     if (is_measuring_lifetime) {
       if (!eco.HasSpecies(initial_species_id)) {
         lifetime = t;
