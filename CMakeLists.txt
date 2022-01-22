@@ -30,6 +30,9 @@ target_link_libraries(test_MultiLevelEvoGame PRIVATE Eigen3::Eigen lapacke OpenM
 add_executable(main_multi_evo main_multi_evo.cpp ${SOURCE_FILES} MultiLevelEvoGame.hpp)
 target_link_libraries(main_multi_evo PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
 
+add_executable(main_mem1 main_mem1.cpp ${SOURCE_FILES})
+target_link_libraries(main_mem1 PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
+
 add_executable(main_multi_evo_batch main_multi_evo_batch.cpp ${SOURCE_FILES} MultiLevelEvoGame.hpp)
 target_include_directories(main_multi_evo_batch PRIVATE ${PROJECT_SOURCE_DIR}/caravan-lib)
 target_link_libraries(main_multi_evo_batch PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX MPI::MPI_CXX)
