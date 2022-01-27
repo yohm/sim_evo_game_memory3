@@ -115,6 +115,7 @@ class MultiLevelEvoGame {
   std::vector<Species> species;
   std::vector<std::mt19937_64> a_rnd;
   std::uniform_real_distribution<double> uni;
+  std::map<std::pair<uint64_t,uint64_t>, double> prob_cache;
 
   double IntraGroupFixationProb(const Species& mutant, const Species& resident) const {
     // \frac{1}{\rho} = \sum_{i=0}^{N-1} \exp\left( \sigma \sum_{j=1}^{i} \left[(N-j-1)s_{yy} + js_{yx} - (N-j)s_{xy} - (j-1)s_{xx} \right] \right) \\
@@ -258,9 +259,18 @@ class MultiLevelEvoGame {
         std::uniform_int_distribution<size_t> d1(1, prm.M-1);
         size_t mig_index = static_cast<size_t>(res_index + d1(a_rnd[0])) % prm.M;
         Species immigrant = species[mig_index];
-        double p = InterGroupImitationProb(immigrant, resident);
-        double f = IntraGroupFixationProb(immigrant, resident);
-        if (uni(a_rnd[0]) < p*f) {
+        auto it = prob_cache.find({immigrant.strategy_id, resident.strategy_id});
+        double prob;
+        if (it == prob_cache.end()) {
+          double p = InterGroupImitationProb(immigrant, resident);
+          double f = IntraGroupFixationProb(immigrant, resident);
+          prob = p*f;
+          prob_cache.insert({ {immigrant.strategy_id, resident.strategy_id}, prob});
+        }
+        else {
+          prob = it->second;
+        }
+        if (uni(a_rnd[0]) < prob) {
           species[res_index] = immigrant;
         }
       }
