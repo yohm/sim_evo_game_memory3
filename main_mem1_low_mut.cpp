@@ -61,18 +61,32 @@ int main(int argc, char *argv[]) {
   #if defined(NDEBUG)
   icecream::ic.disable();
   #endif
-
   Eigen::initParallel();
 
+  if (argc < 7) {
+    std::cerr << "[Error] invalid arguments" << std::endl;
+    std::cerr << "  Usage: " << argv[0] << " <benefit> <error_rate> <N> <M> <sigma> <sigma_g>" << std::endl;
+  }
+
   MultiLevelEvoGame::Parameters prm;
-  prm.benefit = 2.0;
-  prm.error_rate = 1.0e-3;
-  prm.N = 2;
-  prm.M = 100;
-  prm.sigma = 10.0;
-  prm.sigma_g = 10.0;
+  prm.benefit = std::stod(argv[1]);
+  prm.error_rate = std::stod(argv[2]);
+  prm.N = std::stoi(argv[3]);
+  prm.M = std::stoi(argv[4]);
+  prm.sigma = std::stod(argv[5]);
+  prm.sigma_g = std::stod(argv[6]);
   prm.strategy_space = {1, 1};
   prm.initial_condition = "random";
+  prm.weighted_sampling = 0;
+  prm.parallel_update = 0;
+
+  std::cerr
+    << "benefit: " << prm.benefit << std::endl
+    << "error_rate: " << prm.error_rate << std::endl
+    << "N: " << prm.N << std::endl
+    << "M: " << prm.M << std::endl
+    << "sigma: " << prm.sigma << std::endl
+    << "sigma_g: " << prm.sigma_g << std::endl;
 
   MultiLevelEvoGame eco(prm);
 
@@ -107,11 +121,33 @@ int main(int argc, char *argv[]) {
       psi[i][j] = eco.FixationProbLowMutation(v_species[i], v_species[j]);
     }
   }
-  IC(psi);
+  {
+    std::ofstream psi_out("fixation_probs.dat");
+    for (size_t i = 0; i < N_SPECIES; i++) {
+      for (size_t j = 0; j < N_SPECIES; j++) {
+        psi_out << psi[i][j] << ' ';
+      }
+      psi_out << "\n";
+    }
+    psi_out.close();
+  }
 
   // calculate equilibrium fraction
   auto px = CalculateEquilibrium(psi);
-  IC(px);
+  {
+    std::ofstream fout("abundance.dat");
+    for (size_t i = 0; i < N_SPECIES; i++) {
+      fout << px[i] << "\n";
+    }
+    fout.close();
+
+    std::ofstream jout("_output.json");
+    double c = 0.0;
+    for (size_t i = 0; i < N_SPECIES; i++) {
+      c += v_species[i].cooperation_level * px[i];
+    }
+    jout << "{\"cooperation_level\": " << c << " }" << std::endl;
+  }
 
   // calculate unconditional fixation time matrix
   // t_1 = \frac{M(M-1) { 1 + \exp[ \sigma_g(\pi_B - \pi_A)]} }{(1 - \eta^M)\rho_A} \sum_{l=1}^{M-1} \frac{1-\eta^{l}}{l(M-l)}
@@ -123,7 +159,16 @@ int main(int argc, char *argv[]) {
       t_1[i][j] = eco.UnconditionalFixationTimeLowMutation(v_species[i], v_species[j]);
     }
   }
-  IC(t_1);
+  {
+    std::ofstream fout("fixation_times.dat");
+    for (size_t i = 0; i < N_SPECIES; i++) {
+      for (size_t j = 0; j < N_SPECIES; j++) {
+        fout << t_1[i][j] << ' ';
+      }
+      fout << "\n";
+    }
+    fout.close();
+  }
 
   return 0;
 }
