@@ -32,7 +32,7 @@ ax = fig.add_subplot(1, 1, 1)
 ax.bar(x_position, x)
 ax.set_xticks(x_position)
 ax.set_xticklabels(label, minor=False, rotation=90)
-plt.ylim((0,1))
+#plt.ylim((0,1))
 
 # %%
 plt.savefig("abundance.png")
