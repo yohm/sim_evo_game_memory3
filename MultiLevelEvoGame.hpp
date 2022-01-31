@@ -275,6 +275,12 @@ class MultiLevelEvoGame {
         }
       }
     }
+    constexpr size_t CACHE_SIZE_MAX = 1000;
+    if (prob_cache.size() > CACHE_SIZE_MAX) {
+      std::cerr << "deleting cache" << std::endl;
+      ClearCache();
+      std::cerr << "  cache size: " << prob_cache.size() << std::endl;
+    }
   }
 
   void UpdateParallel() {
@@ -303,6 +309,24 @@ class MultiLevelEvoGame {
       int th = omp_get_thread_num();
       if (uni(a_rnd[th]) < f) {
         species[i] = candidates[i];
+      }
+    }
+  }
+
+  void ClearCache() {
+    std::set<uint64_t> existing;
+    for (const auto& s: species) {
+      existing.insert(s.strategy_id);
+    }
+
+    for (auto it = prob_cache.begin(); it != prob_cache.end(); ) {
+      uint64_t sid1 = it->first.first, sid2 = it->first.second;
+      if (existing.find(sid1) == existing.end() || existing.find(sid2) == existing.end()) {
+        // if strategy does not exist in the current species
+        it = prob_cache.erase(it);
+      }
+      else {
+        it++;
       }
     }
   }
