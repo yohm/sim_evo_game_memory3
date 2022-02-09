@@ -166,7 +166,16 @@ class MultiLevelEvoGame {
     double rho_res = IntraGroupFixationProb(resident, mutant);
     // \eta = Q_i^{-}/Q_i^{+} = \rho_B / \rho_A * \exp[ \sigma_g (\pi_B - \pi_A) ]
     double eta = rho_res / rho_mut * std::exp( prm.sigma_g * (pi_res - pi_mut) );
+    IC(pi_mut, pi_res, rho_mut, rho_res, eta, std::pow(eta, prm.M));
     constexpr double tolerance = 1.0e-8;
+    if (rho_mut == 0.0 && rho_res == 0.0) {
+      icecream::ic.enable();
+      IC(mutant, resident, pi_mut, pi_res, rho_mut, rho_res, eta, std::pow(eta, prm.M));
+      throw std::runtime_error("cannot calculate fixation prob");
+    }
+    if (rho_mut == 0.0) {
+      return 0.0;
+    }
     if (std::abs(eta - 1.0) < tolerance) {  // eta == 1
       return rho_mut / static_cast<double>(prm.M);
     }
