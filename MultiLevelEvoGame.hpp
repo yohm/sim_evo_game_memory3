@@ -166,8 +166,6 @@ class MultiLevelEvoGame {
     double rho_res = IntraGroupFixationProb(resident, mutant);
     // \eta = Q_i^{-}/Q_i^{+} = \rho_B / \rho_A * \exp[ \sigma_g (\pi_B - \pi_A) ]
     double eta = rho_res / rho_mut * std::exp( prm.sigma_g * (pi_res - pi_mut) );
-    IC(pi_mut, pi_res, rho_mut, rho_res, eta, std::pow(eta, prm.M));
-    constexpr double tolerance = 1.0e-8;
     if (rho_mut == 0.0 && rho_res == 0.0) {
       icecream::ic.enable();
       IC(mutant, resident, pi_mut, pi_res, rho_mut, rho_res, eta, std::pow(eta, prm.M));
@@ -176,16 +174,21 @@ class MultiLevelEvoGame {
     if (rho_mut == 0.0) {
       return 0.0;
     }
+    // numerically calculate geometric series sum  1 + eta + eta^2 + ... + eta^(M-1)
+    double denom = 1.0;
+    double prod = 1.0;
+    for (int i = 1; i < prm.M; i++) {
+      prod *= eta;
+      denom += prod;
+    }
+    return rho_mut / denom;
+
+    // calculate geometric series by analytical expression
+    constexpr double tolerance = 1.0e-8;
     if (std::abs(eta - 1.0) < tolerance) {  // eta == 1
       return rho_mut / static_cast<double>(prm.M);
     }
     return rho_mut * (1.0 - eta) / (1.0 - std::pow(eta, prm.M));
-
-    // when N == 2
-    // double x1 = 1.0 + std::exp( prm.sigma*(pi_ba - pi_ab) );
-    // double x2 = 1.0 - std::exp(         prm.sigma*(pi_ba - pi_ab) +         prm.sigma_g*(pi_bb - pi_aa) );
-    // double x3 = 1.0 - std::exp( prm.M * prm.sigma*(pi_ba - pi_ab) + prm.M * prm.sigma_g*(pi_bb - pi_aa) );
-    // return 1.0 / x1 * x2 / x3;
   }
 
   double UnconditionalFixationTimeLowMutation(const Species& mutant, const Species& resident) const {
@@ -196,6 +199,37 @@ class MultiLevelEvoGame {
     // \eta = Q_i^{-}/Q_i^{+} = \rho_B / \rho_A * \exp[ \sigma_g (\pi_B - \pi_A) ]
     double eta = rho_res / rho_mut * std::exp( prm.sigma_g * (pi_res_res - pi_mut_mut) );
 
+    if (rho_mut == 0.0) {
+      return std::numeric_limits<double>::infinity();
+    }
+
+    std::vector<double> eta_pow(prm.M, 1.0);  // eta_pow[i] = eta^i
+    for (size_t i = 1; i < prm.M; i++) {
+      eta_pow[i] = eta_pow[i - 1] * eta;
+    }
+
+    // phi_1 = 1 / 1 + eta + eta^2 + ... + eta^(M-1)
+    double phi_1;
+    {
+      double sum = 0.0;
+      for (size_t i = 0; i < prm.M; i++) {
+        sum += eta_pow[i];
+      }
+      phi_1 = 1.0 / sum;
+    }
+
+    // t_1 = phi_1 M(M-1){ 1 + exp[sigma_g(pi_B - pi_A)]} / rho_A \sum_{k=1}^{M-1}\sum_{l=1}^{k} eta^(k-l)/l(M-l)
+    double t = phi_1 * prm.M * (prm.M - 1) * (1.0 + std::exp(prm.sigma_g * (pi_res_res - pi_mut_mut))) / rho_mut;
+    double sum = 0.0;
+    for (int k = 1; k < prm.M; k++) {
+      for (int l = 1; l <= k; l++) {
+        sum += eta_pow[k - l] / static_cast<double>(l * (prm.M - l));
+      }
+    }
+    return t * sum;
+
+    /*
+    // code for analytic calculation
     // for eta == 1
     // t_1 = (M-1){ 1 + \exp[ \sigma_g(\pi_B - \pi_A)]} / \rho_A
     //       * \sum_{l=1}^{M-1}\frac{1}{l}
@@ -206,7 +240,6 @@ class MultiLevelEvoGame {
       for (size_t l = 1; l < prm.M; l++) { sum += 1.0 / static_cast<double>(l); }
       return x * sum;
     }
-
     // for eta != 1
     // t_1 = M(M-1){ 1 + \exp[ \sigma_g(\pi_B - \pi_A)]} / (1 - \eta^M)\rho_A}
     //       * \sum_{l=1}^{M-1} (1-\eta^{l}) / l(M-l)
@@ -217,6 +250,7 @@ class MultiLevelEvoGame {
       sum += (1.0 - std::pow(eta, l)) / static_cast<double>(l*(prm.M-l));
     }
     return num1 / den1 * sum;
+     */
   }
 
   double ConditionalFixationTimeLowMutation(const Species& mutant, const Species& resident) const {
@@ -231,6 +265,35 @@ class MultiLevelEvoGame {
       return std::numeric_limits<double>::infinity();
     }
 
+    std::vector<double> eta_pow(prm.M, 1.0);  // eta_pow[i] = eta^i
+    for (size_t i = 1; i < prm.M; i++) {
+      eta_pow[i] = eta_pow[i - 1] * eta;
+    }
+
+    // phi[l] = {1 + eta + ... + eta^(l-1)} / {1 + eta + eta^2 + ... + eta^(M-1)}
+    std::vector<double> phi(prm.M, 0.0);
+    {
+      for (int l = 1; l < prm.M; l++) {
+        phi[l] = phi[l-1] + eta_pow[l-1];
+      }
+      double denom = phi[prm.M-1] + eta_pow[prm.M-1];
+      for (int l = 1; l < prm.M; l++) {
+        phi[l] /= denom;
+      }
+    }
+
+    // t_1^A = M(M-1){ 1 + exp[sigma_g(pi_B - pi_A)]} / rho_A \sum_{k=1}^{M-1}\sum_{l=1}^{k} eta^(k-l)phi_l/l(M-l)
+    double t = prm.M * (prm.M-1) * (1.0 + std::exp( prm.sigma_g * (pi_res_res - pi_mut_mut))) / rho_mut;
+    double sum = 0.0;
+    for (int k = 1; k < prm.M; k++) {
+      for (int l = 1; l <= k; l++) {
+        sum += eta_pow[k-l] * phi[l] / static_cast<double>(l*(prm.M-l));
+      }
+    }
+    return t * sum;
+
+    // code for analytic calculations
+    /*
     // for eta == 1
     // t_1^A = (M-1)^2 { 1 + \exp[ \sigma_g(\pi_B - \pi_A)]} / \rho_A
     constexpr double tolerance = 1.0e-12;
@@ -250,6 +313,7 @@ class MultiLevelEvoGame {
       sum += (1.0 - std::pow(eta, l) - std::pow(eta, prm.M-l) + std::pow(eta, prm.M) ) / static_cast<double>(l*(prm.M-l));
     }
     return num1 / den1 * sum;
+     */
   }
 
   uint64_t UniformSampleStrategySpace() {
