@@ -219,6 +219,39 @@ class MultiLevelEvoGame {
     return num1 / den1 * sum;
   }
 
+  double ConditionalFixationTimeLowMutation(const Species& mutant, const Species& resident) const {
+    double pi_mut_mut = (prm.benefit - 1.0) * mutant.cooperation_level;
+    double pi_res_res = (prm.benefit - 1.0) * resident.cooperation_level;
+    double rho_mut = IntraGroupFixationProb(mutant, resident);
+    double rho_res = IntraGroupFixationProb(resident, mutant);
+    // \eta = Q_i^{-}/Q_i^{+} = \rho_B / \rho_A * \exp[ \sigma_g (\pi_B - \pi_A) ]
+    double eta = rho_res / rho_mut * std::exp( prm.sigma_g * (pi_res_res - pi_mut_mut) );
+
+    if (rho_mut == 0.0) {
+      return std::numeric_limits<double>::infinity();
+    }
+
+    // for eta == 1
+    // t_1^A = (M-1)^2 { 1 + \exp[ \sigma_g(\pi_B - \pi_A)]} / \rho_A
+    constexpr double tolerance = 1.0e-12;
+    if (std::abs(eta - 1.0) < tolerance) {  // eta == 1
+      double x = static_cast<double>(prm.M-1) * static_cast<double>(prm.M-1);
+      x *= (1.0 + std::exp( prm.sigma_g * (pi_res_res - pi_mut_mut)) ) / rho_mut;
+      return x;
+    }
+
+    // for eta != 1
+    // t_1^A = M(M-1){ 1 + \exp[ \sigma_g(\pi_B - \pi_A)]} / (1 - \eta^M)(1 - \eta)\rho_A}
+    //       * \sum_{l=1}^{M-1} (1-2\eta^{l}\eta^M) / l(M-l)
+    double num1 = prm.M * (prm.M-1) * (1.0 + std::exp( prm.sigma_g * (pi_res_res - pi_mut_mut) ));
+    double den1 = (1.0 - std::pow(eta, prm.M)) * (1.0 - eta) * rho_mut;
+    double sum = 0.0;
+    for (size_t l = 1; l < prm.M; l++) {
+      sum += (1.0 - std::pow(eta, l) - std::pow(eta, prm.M-l) + std::pow(eta, prm.M) ) / static_cast<double>(l*(prm.M-l));
+    }
+    return num1 / den1 * sum;
+  }
+
   uint64_t UniformSampleStrategySpace() {
     const int th = omp_get_thread_num();
     std::uniform_int_distribution<uint64_t> sample(0ull, space.Max());

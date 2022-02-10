@@ -78,7 +78,6 @@ int main(int argc, char *argv[]) {
   // psi[i][j] => fixation probability of mutant i into resident j community
   for (size_t i = 0; i < N_SPECIES; i++) {
     for (size_t j = 0; j < N_SPECIES; j++) {
-      // psi[i][j] = eco.FixationProbLowMutation(v_species[i], v_species[j]);
       double p = eco.FixationProbLowMutation(v_species[i], v_species[j]);
       psi[ss.ToLocalID(v_species[i].strategy_id)][ss.ToLocalID(v_species[j].strategy_id)] = p;
     }
@@ -92,7 +91,35 @@ int main(int argc, char *argv[]) {
       }
       psi_out << "\n";
     }
-    psi_out.close();
+  }
+
+  // calculate conditional fixation time matrix
+  std::vector<std::vector<double>> t1A(16, std::vector<double>(16, 0.0));
+  std::vector<std::vector<double>> t1(16, std::vector<double>(16, 0.0));
+  // psi[i][j] => fixation probability of mutant i into resident j community
+  for (size_t i = 0; i < N_SPECIES; i++) {
+    for (size_t j = 0; j < N_SPECIES; j++) {
+      double ct = eco.ConditionalFixationTimeLowMutation(v_species[i], v_species[j]);
+      double ut = eco.UnconditionalFixationTimeLowMutation(v_species[i], v_species[j]);
+      t1A[ss.ToLocalID(v_species[i].strategy_id)][ss.ToLocalID(v_species[j].strategy_id)] = ct;
+      t1[ss.ToLocalID(v_species[i].strategy_id)][ss.ToLocalID(v_species[j].strategy_id)] = ut;
+    }
+  }
+  {
+    std::ofstream fix_time_out("fixation_times.dat");
+    for (size_t i = 0; i < t1A.size(); i++) {
+      for (size_t j = 0; j < t1A[i].size(); j++) {
+        fix_time_out << t1A[i][j] << ' ';
+      }
+      fix_time_out << "\n";
+    }
+    fix_time_out << "\n";
+    for (size_t i = 0; i < t1.size(); i++) {
+      for (size_t j = 0; j < t1[i].size(); j++) {
+        fix_time_out << t1[i][j] << ' ';
+      }
+      fix_time_out << "\n";
+    }
   }
 
   // calculate equilibrium fraction
