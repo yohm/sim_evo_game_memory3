@@ -116,6 +116,7 @@ class MultiLevelEvoGame {
   std::vector<std::mt19937_64> a_rnd;
   std::uniform_real_distribution<double> uni;
   std::map<std::pair<uint64_t,uint64_t>, double> prob_cache;
+  std::map<uint64_t,Species> species_cache;
 
   double IntraGroupFixationProb(const Species& mutant, const Species& resident) const {
     // \frac{1}{\rho} = \sum_{i=0}^{N-1} \exp\left( \sigma \sum_{j=1}^{i} \left[(N-j-1)s_{yy} + js_{yx} - (N-j)s_{xy} - (j-1)s_{xx} \right] \right) \\
@@ -357,7 +358,11 @@ class MultiLevelEvoGame {
       Species resident = species[res_index];
       if (uni(a_rnd[0]) < prm.p_mu) {  // mutation
         uint64_t mut_id = SampleStrategySpace();
-        Species mutant(mut_id, prm.error_rate);
+        auto it = species_cache.find(mut_id);
+        Species mutant = (it == species_cache.end()) ? Species(mut_id, prm.error_rate) : it->second;
+        if (it == species_cache.end() && mutant.mem_lengths[0]+mutant.mem_lengths[1] <= 4) {
+          species_cache.insert( std::make_pair(mut_id, mutant));
+        }
         double f = IntraGroupFixationProb(mutant, resident);
         if (uni(a_rnd[0]) < f) species[res_index] = mutant;
       }
