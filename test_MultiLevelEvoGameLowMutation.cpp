@@ -22,7 +22,7 @@ MultiLevelEvoGame::Parameters DefaultTestParameters() {
   prm.T_print = 1;
   prm.M = 30;
   prm.N = 2;
-  prm.benefit = 1.5;
+  prm.benefit = 3;
   prm.error_rate = 1.0e-3;
   prm.sigma = 10.0;
   prm.sigma_g = 10.0;
@@ -108,13 +108,20 @@ void test_IntraFixationProb() {
 }
 
 StrategyM3 ParseStrategy(const std::string& str) {
-  std::regex re_d(R"(\d+)"), re_c(R"([cd]{64})");
+  std::regex re_d(R"(\d+)"), re_c(R"([cd]{64})"), re_m1(R"(m1-(\d+))");
+  std::smatch m;
   if (std::regex_match(str, re_d)) {
     uint64_t id = std::stoull(str);
     return StrategyM3{id};
   }
   else if (std::regex_match(str, re_c)) {
     return StrategyM3{str.data()};
+  }
+  else if (std::regex_match(str, m, re_m1)) {
+    uint64_t i = std::strtoull(m[1].str().data(), nullptr, 10ull);
+    StrategySpace ss(1, 1);
+    uint64_t gid = ss.ToGlobalID(i);
+    return StrategyM3{gid};
   }
   else {
     std::map<std::string,StrategyM3> m = {
@@ -128,19 +135,19 @@ StrategyM3 ParseStrategy(const std::string& str) {
       {"CAPRI2", StrategyM3::CAPRI2()},
       {"AON2", StrategyM3::AON(2)},
       {"AON3", StrategyM3::AON(3)},
-      };
-    std::string key(str);
-    if (m.find(key) != m.end()) {
-      return m.at(key);
+    };
+    if (m.find(str) != m.end()) {
+      return m.at(str);
     }
     else {
-      std::cerr << "Error: unknown strategy " << key << std::endl;
+      std::cerr << "Error: unknown strategy " << str << std::endl;
       std::cerr << "  supported strategies are [";
       for (const auto& kv: m) {
         std::cerr << kv.first << ", ";
       }
-      std::cerr << "]" << std::endl;
-      std::runtime_error("unknown strategy");
+      std::cerr << "]" << "\n" << "Or\n  'm1-[0-15]'" << std::endl;
+
+      throw std::runtime_error("unknown strategy");
     }
   }
   return StrategyM3{0ull};
@@ -148,16 +155,29 @@ StrategyM3 ParseStrategy(const std::string& str) {
 
 void PrintFixationProbs(const StrategyM3& mutant, const StrategyM3& resident) {
   auto prm = DefaultTestParameters();
+  IC(prm);
+
   MultiLevelEvoGame eco(prm);
   MultiLevelEvoGame::Species res_species(resident.ID(), prm.error_rate);
   MultiLevelEvoGame::Species mut_species(mutant.ID(), prm.error_rate);
-  std::cout << "fixation prob: " << eco.FixationProbLowMutation(mut_species, res_species) << '\n';
+  std::cout << "fixation probs [psi_A, psi_B]: " << eco.FixationProbLowMutation(mut_species, res_species) << ", "
+            << eco.FixationProbLowMutation(res_species, mut_species) << '\n';
 
   double intra_fixation_prob = eco.IntraGroupFixationProb(mut_species, res_species);
-  std::cout << "intra-fixation prob: " << intra_fixation_prob << '\n';
+  double intra_fixation_prob_res = eco.IntraGroupFixationProb(res_species, mut_species);
+  std::cout << "intra-fixation probs [rho_A, rho_B]: " << intra_fixation_prob << ", " << intra_fixation_prob_res << '\n';
 
   double migration_prob = eco.InterGroupImitationProb(mut_species, res_species);
-  std::cout << "migration prob: " << migration_prob << std::endl;
+  double migration_prob_res = eco.InterGroupImitationProb(res_species, mut_species);
+  std::cout << "migration probs: " << migration_prob << ", " << migration_prob_res << std::endl;
+  double q_plus = intra_fixation_prob * migration_prob;
+  double q_minus = intra_fixation_prob_res * migration_prob_res;
+  std::cout << "[Q+, Q-]: " << q_plus << ", " << q_minus << std::endl;
+
+  double ut = eco.UnconditionalFixationTimeLowMutation(mut_species, res_species);
+  double ct = eco.ConditionalFixationTimeLowMutation(mut_species, res_species);
+  std::cout << "unconditional fixation time: " << ut << "\n" << "conditional fixation time: " << ct << "\n";
+
   std::cout << "payoffs: [" << (prm.benefit-1.0)*mut_species.cooperation_level << ", " << (prm.benefit-1.0)*res_species.cooperation_level << "]\n";
 }
 
