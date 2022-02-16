@@ -72,25 +72,37 @@ vd_t SolveByRungeKutta(std::function<vd_t(vd_t)>& func, const vd_t& init, double
 
 int main(int argc, char *argv[]) {
   Eigen::initParallel();
-  if( argc != 2 ) {
+  if( argc < 9 ) {
     std::cerr << "Error : invalid argument" << std::endl;
-    std::cerr << "  Usage : " << argv[0] << " <parameter_json_file>" << std::endl;
+    std::cerr << "  Usage: " << argv[0] << " <N> <M> <benefit> <error_rate> <sigma> <sigma_g> <mu> <Tmax>" << std::endl;
     return 1;
   }
 
   MultiLevelEvoGame::Parameters prm;
-  {
-    std::ifstream fin(argv[1]);
-    nlohmann::json input;
-    fin >> input;
-    prm = input.get<MultiLevelEvoGame::Parameters>();
+  prm.N = std::stoi(argv[1]);
+  prm.M = std::stoi(argv[2]);
+  prm.benefit = std::stod(argv[3]);
+  prm.error_rate = std::stod(argv[4]);
+  prm.sigma = std::stod(argv[5]);
+  prm.sigma_g = std::stod(argv[6]);
+  prm.p_mu = std::stod(argv[7]);
+  prm.T_max = std::stol(argv[8]);
+  prm.strategy_space = {1, 1};
+  prm.T_init = 0;
+  prm._seed = 0;
+  prm.initial_condition = "random";
+  prm.weighted_sampling = 0;
+  prm.parallel_update = 0;
 
-    if (prm.strategy_space != std::array<size_t,2>{1,1}) {
-      throw std::runtime_error("strategy space must be {1,1}");
-    }
-  }
-
-  MeasureElapsed("initialize");
+  std::cerr
+    << "N: " << prm.N << std::endl
+    << "M: " << prm.M << std::endl
+    << "benefit: " << prm.benefit << std::endl
+    << "error_rate: " << prm.error_rate << std::endl
+    << "sigma: " << prm.sigma << std::endl
+    << "sigma_g: " << prm.sigma_g << std::endl
+    << "p_mu: " << prm.p_mu << std::endl
+    << "T_max: " << prm.T_max << std::endl;
 
   MultiLevelEvoGame eco(prm);
 
@@ -134,11 +146,37 @@ int main(int argc, char *argv[]) {
   };
 
   vd_t x;
-  for (double& xi : x) { xi = 1.0 / N; }
-  for (size_t t = 0; t < prm.T_max; t++) {
-    x = SolveByRungeKutta(x_dot, x, 0.01, 100);
-    for (double xi : x) { std::cout << xi << ' '; }
-    std::cout << std::endl;
+  {
+    std::ofstream fout("timeseries.dat");
+    for (double& xi : x) { xi = 1.0 / N; }
+    size_t dt = prm.T_max / 500;
+    for (size_t t = 0; t < prm.T_max; t++) {
+      x = SolveByRungeKutta(x_dot, x, 0.01, 100);
+      if (t % dt == 0) {
+        for (double xi : x) { fout << xi << ' '; }
+        fout << std::endl;
+      }
+    }
+  }
+
+  {
+    std::ofstream fout("delta_p.dat");
+    for (size_t i = 0; i < N; i++) {
+      for (size_t j = 0; j < N; j++) {
+        fout << delta_p_AB[i][j] << ' ';
+      }
+      fout << "\n";
+    }
+  }
+
+  {
+    std::ofstream fout("rho.dat");
+    for (size_t i = 0; i < N; i++) {
+      for (size_t j = 0; j < N; j++) {
+        fout << rho_AB[i][j] << ' ';
+      }
+      fout << "\n";
+    }
   }
 
   MeasureElapsed("done");
