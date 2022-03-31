@@ -179,6 +179,73 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  {
+    std::ofstream fout("top_flows.dat");
+    fout << std::fixed << std::setprecision(2);
+    for (size_t i = 0; i < N; i++) {
+      fout << i << ' ' << x[i] << std::endl;
+      std::vector< std::pair<std::string,double> > inflows;
+      std::vector< std::pair<std::string,double> > outflows;
+      for (size_t j = 0; j < N; j++) {
+        double mig = (1.0 - nu) * x[i] * x[j] * delta_p_AB[i][j];
+        std::ostringstream key;
+        key << "mig:" << j;
+        if (mig < 0) { outflows.push_back({key.str(), -mig}); }
+        else if (mig > 0) { inflows.push_back({key.str(), mig}); }
+
+        double mut_out = nu * x[i] * rho_AB[j][i] / N;
+        key.str(""); key.clear();
+        key << "mut:" << j;
+        outflows.push_back({key.str(), mut_out});
+
+        double mut_in = nu * x[j] * rho_AB[i][j] / N;
+        key.str(""); key.clear();
+        key << "mut:" << j;
+        inflows.push_back({key.str(), mut_in});
+      }
+
+      { // print inflow
+        std::sort(inflows.begin(), inflows.end(), [](const auto& lhs, const auto& rhs) {
+          return lhs.second > rhs.second;
+        });
+        IC(inflows);
+        double sum = 0.0;
+        for (const auto &pair: inflows) { sum += pair.second; }
+        fout << "  inflow:" << "\n";
+        for (auto& pair: inflows) {
+          double v = pair.second / sum;
+          if (v > 0.01) { fout << "    " << pair.first << "\t" << v << "\n"; }
+          else break;
+        }
+      }
+      { // print outflow
+        std::sort(outflows.begin(), outflows.end(), [](const auto& lhs, const auto& rhs) {
+          return lhs.second > rhs.second;
+        });
+        double sum = 0.0;
+        for (const auto &pair: outflows) { sum += pair.second; }
+        fout << "  outflow:" << "\n";
+        for (auto& pair: outflows) {
+          double v = pair.second / sum;
+          if (v > 0.01) { fout << "    " << pair.first << "\t" << v << "\n"; }
+          else break;
+        }
+      }
+    }
+  }
+
+  {
+    nlohmann::json output;
+    double c_level = 0.0;
+    for (size_t i = 0; i < N; i++) {
+      c_level += x[i] * species[i].cooperation_level;
+    }
+    output["cooperation_level"] = c_level;
+    std::ofstream fout("_output.json");
+    fout << output.dump(2);
+    fout.close();
+  }
+
   MeasureElapsed("done");
   return 0;
 }
