@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
       double dx = 0.0;
       for (size_t j = 0; j < N; j++) {
         if (i == j) continue;
-        dx += (1.0 - nu) * x[i] * x[j] * delta_p_AB[i][j] - nu * x[i] * rho_AB[j][i] + nu * x[j] * rho_AB[i][j];
+        dx += (1.0 - nu) * x[i] * x[j] * delta_p_AB[i][j] - nu * x[i] * rho_AB[j][i] / N + nu * x[j] * rho_AB[i][j] / N;
       }
       ans[i] = dx / M;
     }
