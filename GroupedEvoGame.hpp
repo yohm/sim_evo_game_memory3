@@ -183,13 +183,6 @@ class GroupedEvoGame {
       denom += prod;
     }
     return rho_mut / denom;
-
-    // calculate geometric series by analytical expression
-    constexpr double tolerance = 1.0e-8;
-    if (std::abs(eta - 1.0) < tolerance) {  // eta == 1
-      return rho_mut / static_cast<double>(prm.M);
-    }
-    return rho_mut * (1.0 - eta) / (1.0 - std::pow(eta, prm.M));
   }
 
   double UnconditionalFixationTimeLowMutation(const Species& mutant, const Species& resident) const {
@@ -228,30 +221,6 @@ class GroupedEvoGame {
       }
     }
     return t * sum;
-
-    /*
-    // code for analytic calculation
-    // for eta == 1
-    // t_1 = (M-1){ 1 + \exp[ \sigma_out(\pi_B - \pi_A)]} / \rho_A
-    //       * \sum_{l=1}^{M-1}\frac{1}{l}
-    constexpr double tolerance = 1.0e-8;
-    if (std::abs(eta - 1.0) < tolerance) {  // eta == 1
-      double x = static_cast<double>(prm.M-1) * (1.0 + std::exp( prm.sigma_out * (pi_res_res - pi_mut_mut)) ) / rho_mut;
-      double sum = 0.0;
-      for (size_t l = 1; l < prm.M; l++) { sum += 1.0 / static_cast<double>(l); }
-      return x * sum;
-    }
-    // for eta != 1
-    // t_1 = M(M-1){ 1 + \exp[ \sigma_out(\pi_B - \pi_A)]} / (1 - \eta^M)\rho_A}
-    //       * \sum_{l=1}^{M-1} (1-\eta^{l}) / l(M-l)
-    double num1 = prm.M * (prm.M-1) * (1.0 + std::exp( prm.sigma_out * (pi_res_res - pi_mut_mut) ));
-    double den1 = (1.0 - std::pow(eta, prm.M)) * rho_mut;
-    double sum = 0.0;
-    for (size_t l = 1; l < prm.M; l++) {
-      sum += (1.0 - std::pow(eta, l)) / static_cast<double>(l*(prm.M-l));
-    }
-    return num1 / den1 * sum;
-     */
   }
 
   double ConditionalFixationTimeLowMutation(const Species& mutant, const Species& resident) const {
@@ -292,29 +261,6 @@ class GroupedEvoGame {
       }
     }
     return t * sum;
-
-    // code for analytic calculations
-    /*
-    // for eta == 1
-    // t_1^A = (M-1)^2 { 1 + \exp[ \sigma_out(\pi_B - \pi_A)]} / \rho_A
-    constexpr double tolerance = 1.0e-12;
-    if (std::abs(eta - 1.0) < tolerance) {  // eta == 1
-      double x = static_cast<double>(prm.M-1) * static_cast<double>(prm.M-1);
-      x *= (1.0 + std::exp( prm.sigma_out * (pi_res_res - pi_mut_mut)) ) / rho_mut;
-      return x;
-    }
-
-    // for eta != 1
-    // t_1^A = M(M-1){ 1 + \exp[ \sigma_out(\pi_B - \pi_A)]} / (1 - \eta^M)(1 - \eta)\rho_A}
-    //       * \sum_{l=1}^{M-1} (1-2\eta^{l}\eta^M) / l(M-l)
-    double num1 = prm.M * (prm.M-1) * (1.0 + std::exp( prm.sigma_out * (pi_res_res - pi_mut_mut) ));
-    double den1 = (1.0 - std::pow(eta, prm.M)) * (1.0 - eta) * rho_mut;
-    double sum = 0.0;
-    for (size_t l = 1; l < prm.M; l++) {
-      sum += (1.0 - std::pow(eta, l) - std::pow(eta, prm.M-l) + std::pow(eta, prm.M) ) / static_cast<double>(l*(prm.M-l));
-    }
-    return num1 / den1 * sum;
-     */
   }
 
   uint64_t UniformSampleStrategySpace() {
