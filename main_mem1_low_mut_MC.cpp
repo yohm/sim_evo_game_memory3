@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
 
   if (argc < 10) {
     std::cerr << "[Error] invalid arguments" << std::endl;
-    std::cerr << "  Usage: " << argv[0] << " <benefit> <error_rate> <N> <M> <sigma> <sigma_g> <T_max> <T_init> <_seed> [SPECIES_LIST]" << std::endl;
+    std::cerr << "  Usage: " << argv[0] << " <benefit> <error_rate> <N> <M> <sigma_in> <sigma_out> <T_max> <T_init> <_seed> [SPECIES_LIST]" << std::endl;
   }
 
   GroupedEvoGame::Parameters prm;
@@ -27,8 +27,8 @@ int main(int argc, char *argv[]) {
   prm.error_rate = std::stod(argv[2]);
   prm.N = std::stoi(argv[3]);
   prm.M = std::stoi(argv[4]);
-  prm.sigma = std::stod(argv[5]);
-  prm.sigma_g = std::stod(argv[6]);
+  prm.sigma_in = std::stod(argv[5]);
+  prm.sigma_out = std::stod(argv[6]);
   prm.T_max = std::stoul(argv[7]);
   prm.T_init = std::stoul(argv[8]);
   prm._seed = std::stoull(argv[9]);
@@ -42,8 +42,8 @@ int main(int argc, char *argv[]) {
     << "error_rate: " << prm.error_rate << std::endl
     << "N: " << prm.N << std::endl
     << "M: " << prm.M << std::endl
-    << "sigma: " << prm.sigma << std::endl
-    << "sigma_g: " << prm.sigma_g << std::endl
+    << "sigma_in: " << prm.sigma_in << std::endl
+    << "sigma_out: " << prm.sigma_out << std::endl
     << "T_max: " << prm.T_max << std::endl
     << "T_init: " << prm.T_init << std::endl;
 

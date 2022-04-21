@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
 
   if (argc < 7) {
     std::cerr << "[Error] invalid arguments" << std::endl;
-    std::cerr << "  Usage: " << argv[0] << " <benefit> <error_rate> <N> <M> <sigma> <sigma_g>" << std::endl;
+    std::cerr << "  Usage: " << argv[0] << " <benefit> <error_rate> <N> <M> <sigma_in> <sigma_out>" << std::endl;
   }
 
   GroupedEvoGame::Parameters prm;
@@ -73,8 +73,8 @@ int main(int argc, char *argv[]) {
   prm.error_rate = std::stod(argv[2]);
   prm.N = std::stoi(argv[3]);
   prm.M = std::stoi(argv[4]);
-  prm.sigma = std::stod(argv[5]);
-  prm.sigma_g = std::stod(argv[6]);
+  prm.sigma_in = std::stod(argv[5]);
+  prm.sigma_out = std::stod(argv[6]);
   prm.strategy_space = {1, 1};
   prm.initial_condition = "random";
   prm.weighted_sampling = 0;
@@ -85,8 +85,8 @@ int main(int argc, char *argv[]) {
     << "error_rate: " << prm.error_rate << std::endl
     << "N: " << prm.N << std::endl
     << "M: " << prm.M << std::endl
-    << "sigma: " << prm.sigma << std::endl
-    << "sigma_g: " << prm.sigma_g << std::endl;
+    << "sigma_in: " << prm.sigma_in << std::endl
+    << "sigma_out: " << prm.sigma_out << std::endl;
 
   GroupedEvoGame eco(prm);
 
@@ -150,8 +150,8 @@ int main(int argc, char *argv[]) {
   }
 
   // calculate unconditional fixation time matrix
-  // t_1 = \frac{M(M-1) { 1 + \exp[ \sigma_g(\pi_B - \pi_A)]} }{(1 - \eta^M)\rho_A} \sum_{l=1}^{M-1} \frac{1-\eta^{l}}{l(M-l)}
-  //     = M(M-1){ 1 + \exp[ \sigma_g(\pi_B - \pi_A)]} / (1 - \eta^M)\rho_A}
+  // t_1 = \frac{M(M-1) { 1 + \exp[ \sigma_out(\pi_B - \pi_A)]} }{(1 - \eta^M)\rho_A} \sum_{l=1}^{M-1} \frac{1-\eta^{l}}{l(M-l)}
+  //     = M(M-1){ 1 + \exp[ \sigma_out(\pi_B - \pi_A)]} / (1 - \eta^M)\rho_A}
   //       * \sum_{l=1}^{M-1} (1-\eta^{l}) / l(M-l)
   std::vector<std::vector<double>> t_1(N_SPECIES, std::vector<double>(N_SPECIES, 0.0));
   for (size_t i = 0; i < N_SPECIES; i++) {

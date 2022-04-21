@@ -20,8 +20,8 @@ GroupedEvoGame::Parameters DefaultTestParameters() {
   prm.N = 3;
   prm.benefit = 2.0;
   prm.error_rate = 1.0e-3;
-  prm.sigma = 10.0;
-  prm.sigma_g = 10.0;
+  prm.sigma_in = 10.0;
+  prm.sigma_out = 10.0;
   prm.p_mu = 0.5;
   prm.strategy_space = {3,3};
   prm.initial_condition = "random";

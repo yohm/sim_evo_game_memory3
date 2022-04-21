@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
   Eigen::initParallel();
   if( argc < 9 ) {
     std::cerr << "Error : invalid argument" << std::endl;
-    std::cerr << "  Usage: " << argv[0] << " <N> <M> <benefit> <error_rate> <sigma> <sigma_g> <mu> <Tmax>" << std::endl;
+    std::cerr << "  Usage: " << argv[0] << " <N> <M> <benefit> <error_rate> <sigma_in> <sigma_out> <mu> <Tmax>" << std::endl;
     return 1;
   }
 
@@ -83,8 +83,8 @@ int main(int argc, char *argv[]) {
   prm.M = std::stoi(argv[2]);
   prm.benefit = std::stod(argv[3]);
   prm.error_rate = std::stod(argv[4]);
-  prm.sigma = std::stod(argv[5]);
-  prm.sigma_g = std::stod(argv[6]);
+  prm.sigma_in = std::stod(argv[5]);
+  prm.sigma_out = std::stod(argv[6]);
   prm.p_mu = std::stod(argv[7]);
   prm.T_max = std::stol(argv[8]);
   prm.strategy_space = {1, 1};
@@ -99,8 +99,8 @@ int main(int argc, char *argv[]) {
     << "M: " << prm.M << std::endl
     << "benefit: " << prm.benefit << std::endl
     << "error_rate: " << prm.error_rate << std::endl
-    << "sigma: " << prm.sigma << std::endl
-    << "sigma_g: " << prm.sigma_g << std::endl
+    << "sigma_in: " << prm.sigma_in << std::endl
+    << "sigma_out: " << prm.sigma_out << std::endl
     << "p_mu: " << prm.p_mu << std::endl
     << "T_max: " << prm.T_max << std::endl;
 
