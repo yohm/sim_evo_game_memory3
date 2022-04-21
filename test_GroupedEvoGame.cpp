@@ -22,7 +22,7 @@ GroupedEvoGame::Parameters DefaultTestParameters() {
   prm.error_rate = 1.0e-3;
   prm.sigma_in = 10.0;
   prm.sigma_out = 10.0;
-  prm.p_mu = 0.5;
+  prm.p_nu = 0.5;
   prm.strategy_space = {3,3};
   prm.initial_condition = "random";
   prm.weighted_sampling = 1;

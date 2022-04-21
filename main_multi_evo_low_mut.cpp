@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
     nlohmann::json input;
     fin >> input;
     // populate dummy data for unused parameters
-    input["p_mu"] = -1.0;
+    input["p_nu"] = -1.0;
     input["weighted_sampling"] = 1;
     input["parallel_update"] = 0;
     prm = input.get<GroupedEvoGame::Parameters>();

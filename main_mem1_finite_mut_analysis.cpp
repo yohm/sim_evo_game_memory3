@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
   prm.error_rate = std::stod(argv[4]);
   prm.sigma_in = std::stod(argv[5]);
   prm.sigma_out = std::stod(argv[6]);
-  prm.p_mu = std::stod(argv[7]);
+  prm.p_nu = std::stod(argv[7]);
   prm.T_max = std::stol(argv[8]);
   prm.strategy_space = {1, 1};
   prm.T_init = 0;
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
     << "error_rate: " << prm.error_rate << std::endl
     << "sigma_in: " << prm.sigma_in << std::endl
     << "sigma_out: " << prm.sigma_out << std::endl
-    << "p_mu: " << prm.p_mu << std::endl
+    << "p_nu: " << prm.p_nu << std::endl
     << "T_max: " << prm.T_max << std::endl;
 
   GroupedEvoGame eco(prm);
@@ -130,7 +130,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  double nu = prm.p_mu;  // mutation rate
+  double nu = prm.p_nu;  // mutation rate
   double M = static_cast<double>(prm.M);
   std::function<vd_t(vd_t)> x_dot = [&rho_AB,&delta_p_AB,nu,M](const vd_t& x) {
     vd_t ans;

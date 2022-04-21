@@ -36,7 +36,7 @@ class GroupedEvoGame {
     double benefit;
     double error_rate;
     double sigma_in, sigma_out;
-    double p_mu;  // probability of introducing a mutant
+    double p_nu;  // probability of introducing a mutant
     std::array<size_t,2> strategy_space;
     int weighted_sampling;  // 1: weighted sampling, 0: uniform sampling
     int parallel_update;    // 1: parallel update, 0: serial update
@@ -44,7 +44,7 @@ class GroupedEvoGame {
     uint64_t _seed;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Parameters, T_max, T_print, T_init,
-                                   M, N, benefit, error_rate, sigma_in, sigma_out, p_mu,
+                                   M, N, benefit, error_rate, sigma_in, sigma_out, p_nu,
                                    strategy_space, weighted_sampling, parallel_update, initial_condition, _seed);
   };
 
@@ -356,7 +356,7 @@ class GroupedEvoGame {
       std::uniform_int_distribution<size_t> d0(0, prm.M-1);
       size_t res_index = d0(a_rnd[0]);
       Species resident = species[res_index];
-      if (uni(a_rnd[0]) < prm.p_mu) {  // mutation
+      if (uni(a_rnd[0]) < prm.p_nu) {  // mutation
         uint64_t mut_id = SampleStrategySpace();
         auto it = species_cache.find(mut_id);
         Species mutant = (it == species_cache.end()) ? Species(mut_id, prm.error_rate) : it->second;
@@ -399,7 +399,7 @@ class GroupedEvoGame {
     #pragma omp parallel for
     for (size_t i = 0; i < prm.M; i++) {
       int th = omp_get_thread_num();
-      if (uni(a_rnd[th]) < prm.p_mu) {
+      if (uni(a_rnd[th]) < prm.p_nu) {
         uint64_t mut_id = SampleStrategySpace();
         candidates[i] = Species(mut_id, prm.error_rate);
       }

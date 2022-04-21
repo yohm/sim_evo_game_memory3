@@ -30,7 +30,7 @@ GroupedEvoGame::Parameters DefaultTestParameters() {
   prm.initial_condition = "random";
   prm.weighted_sampling = 1;
   prm.parallel_update = 0;
-  prm.p_mu = 0.0;
+  prm.p_nu = 0.0;
   prm._seed = 1234567890ull;
   return prm;
 }
