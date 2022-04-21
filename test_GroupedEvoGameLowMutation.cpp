@@ -79,9 +79,9 @@ void test_FixationProb() {
   myassert( IsClose(eco.FixationProbLowMutation(alld, allc), 1.0) );
   myassert( IsClose( eco.FixationProbLowMutation(allc, alld), 0.0) );
   myassert( IsClose( eco.FixationProbLowMutation(tft, allc), 0.0) );
-  myassert( IsClose( eco.FixationProbLowMutation(allc, tft), 0.45)  );
+  myassert( IsClose( eco.FixationProbLowMutation(allc, tft), 0.49)  );
   myassert( IsClose( eco.FixationProbLowMutation(tft, wsls), 0.0) );
-  myassert( IsClose( eco.FixationProbLowMutation(wsls, tft), 0.45)  );
+  myassert( IsClose( eco.FixationProbLowMutation(wsls, tft), 0.49)  );
   myassert( IsClose( eco.FixationProbLowMutation(wsls, allc), 1.0)  );
   myassert( IsClose( eco.FixationProbLowMutation(allc, wsls), 0.0)  );
 }

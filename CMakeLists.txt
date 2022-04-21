@@ -24,8 +24,8 @@ target_link_libraries(test_StrategyM3 PRIVATE Eigen3::Eigen lapacke)
 add_executable(test_StrategySpace test_StrategySpace.cpp StrategySpace.hpp)
 target_link_libraries(test_StrategySpace PRIVATE Eigen3::Eigen lapacke)
 
-add_executable(test_MultiLevelEvoGame test_GroupedEvoGame.cpp GroupedEvoGame.hpp ${SOURCE_FILES})
-target_link_libraries(test_MultiLevelEvoGame PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
+add_executable(test_GroupedEvoGame test_GroupedEvoGame.cpp GroupedEvoGame.hpp ${SOURCE_FILES})
+target_link_libraries(test_GroupedEvoGame PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
 
 add_executable(main_multi_evo main_multi_evo.cpp ${SOURCE_FILES} GroupedEvoGame.hpp)
 target_link_libraries(main_multi_evo PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
@@ -34,8 +34,8 @@ add_executable(main_multi_evo_batch main_multi_evo_batch.cpp ${SOURCE_FILES} Gro
 target_include_directories(main_multi_evo_batch PRIVATE ${PROJECT_SOURCE_DIR}/caravan-lib)
 target_link_libraries(main_multi_evo_batch PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX MPI::MPI_CXX)
 
-add_executable(test_MultiLevelEvoGameLowMutation test_GroupedEvoGameLowMutation.cpp ${SOURCE_FILES})
-target_link_libraries(test_MultiLevelEvoGameLowMutation PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
+add_executable(test_GroupedEvoGameLowMutation test_GroupedEvoGameLowMutation.cpp ${SOURCE_FILES})
+target_link_libraries(test_GroupedEvoGameLowMutation PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
 
 add_executable(main_multi_evo_low_mut main_multi_evo_low_mut.cpp ${SOURCE_FILES})
 target_link_libraries(main_multi_evo_low_mut PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
