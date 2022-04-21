@@ -2,8 +2,8 @@
 // Created by Yohsuke Murase on 2021/10/29.
 //
 
-#ifndef CPP_MULTILEVELEVOGAME_HPP
-#define CPP_MULTILEVELEVOGAME_HPP
+#ifndef CPP_GROUPED_EVO_GAME_HPP
+#define CPP_GROUPED_EVO_GAME_HPP
 
 #define EIGEN_DONT_PARALLELIZE
 
@@ -24,7 +24,7 @@
 #include "StrategySpace.hpp"
 
 
-class MultiLevelEvoGame {
+class GroupedEvoGame {
   public:
   class Parameters {
     public:
@@ -71,7 +71,7 @@ class MultiLevelEvoGame {
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Species, strategy_id, cooperation_level, is_efficient, is_defensible, mem_lengths, automaton_sizes);
   };
 
-  explicit MultiLevelEvoGame(Parameters _prm) :
+  explicit GroupedEvoGame(Parameters _prm) :
     prm(std::move(_prm)), space(prm.strategy_space[0], prm.strategy_space[1]) {
     for (uint32_t t = 0; t < omp_get_max_threads(); t++) {
       std::seed_seq s = {static_cast<uint32_t>(prm._seed), t};
@@ -521,4 +521,4 @@ class MultiLevelEvoGame {
 };
 
 
-#endif //CPP_MULTILEVELEVOGAME_HPP
+#endif //CPP_GROUPED_EVO_GAME_HPP

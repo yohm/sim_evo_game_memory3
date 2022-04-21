@@ -1,7 +1,7 @@
 #include <iostream>
 #include <regex>
 #include <cassert>
-#include "MultiLevelEvoGame.hpp"
+#include "GroupedEvoGame.hpp"
 
 #define myassert(x) do {                              \
 if (!(x)) {                                           \
@@ -15,8 +15,8 @@ bool IsClose(double x, double y) {
   return std::abs(x-y) < 1.0e-2;
 }
 
-MultiLevelEvoGame::Parameters DefaultTestParameters() {
-  MultiLevelEvoGame::Parameters prm;
+GroupedEvoGame::Parameters DefaultTestParameters() {
+  GroupedEvoGame::Parameters prm;
   prm.T_max = 1;
   prm.T_init = 0;
   prm.T_print = 1;
@@ -45,16 +45,16 @@ V GetWithDef(const C<K,V,Args...>& m, K const& key, const V & defval) {
 void PrintFixationProbHisto(uint64_t resident_id) {
   auto prm = DefaultTestParameters();
   std::cout << static_cast<nlohmann::json>(prm) << std::endl;
-  MultiLevelEvoGame eco(prm);
+  GroupedEvoGame eco(prm);
 
-  MultiLevelEvoGame::Species resident(resident_id, prm.error_rate);
+  GroupedEvoGame::Species resident(resident_id, prm.error_rate);
 
   std::map<double,int> fixation_prob_histo;
   double sum = 0.0;
   size_t COUNT = 1000;
   for (size_t i = 0; i < COUNT; i++) {
     uint64_t mut_id = eco.SampleStrategySpace();
-    MultiLevelEvoGame::Species mut(mut_id, eco.prm.error_rate);
+    GroupedEvoGame::Species mut(mut_id, eco.prm.error_rate);
     double f = eco.FixationProbLowMutation(mut, resident);
     sum += f;
     double key = std::round(f * 10.0) / 10.0;
@@ -70,12 +70,12 @@ void test_FixationProb() {
   prm.M = 30;
   prm.sigma = 10.0;
   prm.sigma_g = 10.0;
-  MultiLevelEvoGame eco(prm);
+  GroupedEvoGame eco(prm);
 
-  MultiLevelEvoGame::Species allc(StrategyM3::ALLC().ID(), prm.error_rate);
-  MultiLevelEvoGame::Species alld(StrategyM3::ALLD().ID(), prm.error_rate);
-  MultiLevelEvoGame::Species tft(StrategyM3::TFT().ID(), prm.error_rate);
-  MultiLevelEvoGame::Species wsls(StrategyM3::WSLS().ID(), prm.error_rate);
+  GroupedEvoGame::Species allc(StrategyM3::ALLC().ID(), prm.error_rate);
+  GroupedEvoGame::Species alld(StrategyM3::ALLD().ID(), prm.error_rate);
+  GroupedEvoGame::Species tft(StrategyM3::TFT().ID(), prm.error_rate);
+  GroupedEvoGame::Species wsls(StrategyM3::WSLS().ID(), prm.error_rate);
   myassert( IsClose(eco.FixationProbLowMutation(alld, allc), 1.0) );
   myassert( IsClose( eco.FixationProbLowMutation(allc, alld), 0.0) );
   myassert( IsClose( eco.FixationProbLowMutation(tft, allc), 0.0) );
@@ -92,12 +92,12 @@ void test_IntraFixationProb() {
   prm.M = 30;
   prm.sigma = 10.0;
   prm.sigma_g = 10.0;
-  MultiLevelEvoGame eco(prm);
+  GroupedEvoGame eco(prm);
 
-  MultiLevelEvoGame::Species allc(StrategyM3::ALLC().ID(), prm.error_rate);
-  MultiLevelEvoGame::Species alld(StrategyM3::ALLD().ID(), prm.error_rate);
-  MultiLevelEvoGame::Species tft(StrategyM3::TFT().ID(), prm.error_rate);
-  MultiLevelEvoGame::Species wsls(StrategyM3::WSLS().ID(), prm.error_rate);
+  GroupedEvoGame::Species allc(StrategyM3::ALLC().ID(), prm.error_rate);
+  GroupedEvoGame::Species alld(StrategyM3::ALLD().ID(), prm.error_rate);
+  GroupedEvoGame::Species tft(StrategyM3::TFT().ID(), prm.error_rate);
+  GroupedEvoGame::Species wsls(StrategyM3::WSLS().ID(), prm.error_rate);
 
   myassert( IsClose(eco.IntraGroupFixationProb(allc, alld), 0.0) );
   myassert( IsClose(eco.IntraGroupFixationProb(alld, allc), 1.0) );
@@ -157,9 +157,9 @@ void PrintFixationProbs(const StrategyM3& mutant, const StrategyM3& resident) {
   auto prm = DefaultTestParameters();
   IC(prm);
 
-  MultiLevelEvoGame eco(prm);
-  MultiLevelEvoGame::Species res_species(resident.ID(), prm.error_rate);
-  MultiLevelEvoGame::Species mut_species(mutant.ID(), prm.error_rate);
+  GroupedEvoGame eco(prm);
+  GroupedEvoGame::Species res_species(resident.ID(), prm.error_rate);
+  GroupedEvoGame::Species mut_species(mutant.ID(), prm.error_rate);
   std::cout << "fixation probs [psi_A, psi_B]: " << eco.FixationProbLowMutation(mut_species, res_species) << ", "
             << eco.FixationProbLowMutation(res_species, mut_species) << '\n';
 

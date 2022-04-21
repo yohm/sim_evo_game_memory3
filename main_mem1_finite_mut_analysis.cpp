@@ -7,7 +7,7 @@
 #include <array>
 #include <chrono>
 #include <regex>
-#include "MultiLevelEvoGame.hpp"
+#include "GroupedEvoGame.hpp"
 #include "icecream-cpp/icecream.hpp"
 
 
@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  MultiLevelEvoGame::Parameters prm;
+  GroupedEvoGame::Parameters prm;
   prm.N = std::stoi(argv[1]);
   prm.M = std::stoi(argv[2]);
   prm.benefit = std::stod(argv[3]);
@@ -104,11 +104,11 @@ int main(int argc, char *argv[]) {
     << "p_mu: " << prm.p_mu << std::endl
     << "T_max: " << prm.T_max << std::endl;
 
-  MultiLevelEvoGame eco(prm);
+  GroupedEvoGame eco(prm);
 
   MeasureElapsed("simulation");
 
-  std::vector<MultiLevelEvoGame::Species> species;
+  std::vector<GroupedEvoGame::Species> species;
   StrategySpace ss = {1, 1};
   for (size_t i = 0; i < N; i++) {
     uint64_t gid = ss.ToGlobalID(i);

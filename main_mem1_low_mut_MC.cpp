@@ -7,7 +7,7 @@
 #include <array>
 #include <chrono>
 #include <Eigen/Dense>
-#include "MultiLevelEvoGame.hpp"
+#include "GroupedEvoGame.hpp"
 #include "icecream-cpp/icecream.hpp"
 
 
@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
     std::cerr << "  Usage: " << argv[0] << " <benefit> <error_rate> <N> <M> <sigma> <sigma_g> <T_max> <T_init> <_seed> [SPECIES_LIST]" << std::endl;
   }
 
-  MultiLevelEvoGame::Parameters prm;
+  GroupedEvoGame::Parameters prm;
   prm.benefit = std::stod(argv[1]);
   prm.error_rate = std::stod(argv[2]);
   prm.N = std::stoi(argv[3]);
@@ -47,11 +47,11 @@ int main(int argc, char *argv[]) {
     << "T_max: " << prm.T_max << std::endl
     << "T_init: " << prm.T_init << std::endl;
 
-  MultiLevelEvoGame eco(prm);
+  GroupedEvoGame eco(prm);
 
   // prepare memory-1 species
   StrategySpace ss(1, 1);
-  std::vector<MultiLevelEvoGame::Species> v_species;
+  std::vector<GroupedEvoGame::Species> v_species;
   size_t N_SPECIES = 16;
   if (argc == 10) {
     for (uint64_t i = 0; i < N_SPECIES; i++) {

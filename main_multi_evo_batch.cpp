@@ -9,17 +9,17 @@
 #include <regex>
 #include "omp.h"
 #include "mpi.h"
-#include "MultiLevelEvoGame.hpp"
+#include "GroupedEvoGame.hpp"
 #include "icecream-cpp/icecream.hpp"
 #include "caravan-lib/caravan.hpp"
 
 
 using nlohmann::json;
 
-json RunSimulation(const MultiLevelEvoGame::Parameters& prm) {
+json RunSimulation(const GroupedEvoGame::Parameters& prm) {
   std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
 
-  MultiLevelEvoGame eco(prm);
+  GroupedEvoGame eco(prm);
 
   uint64_t initial_species_id;
   bool is_measuring_lifetime = false;
@@ -147,7 +147,7 @@ int main(int argc, char *argv[]) {
   };
 
   std::function<json(const json&)> do_task = [](const json& input) {
-    MultiLevelEvoGame::Parameters prm = input.get<MultiLevelEvoGame::Parameters>();
+    GroupedEvoGame::Parameters prm = input.get<GroupedEvoGame::Parameters>();
     return RunSimulation(prm);
   };
 

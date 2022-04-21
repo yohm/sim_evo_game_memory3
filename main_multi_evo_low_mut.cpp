@@ -7,7 +7,7 @@
 #include <array>
 #include <chrono>
 #include <regex>
-#include "MultiLevelEvoGame.hpp"
+#include "GroupedEvoGame.hpp"
 #include "icecream-cpp/icecream.hpp"
 
 
@@ -46,7 +46,7 @@ class Counter {
   }
 };
 
-void Measure(const MultiLevelEvoGame::Species& current_species, Counter& counter) {
+void Measure(const GroupedEvoGame::Species& current_species, Counter& counter) {
   counter.cooperation_level += current_species.cooperation_level;
   if (current_species.is_defensible && current_species.is_efficient) {
     counter.friendly_rival++;
@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  MultiLevelEvoGame::Parameters prm;
+  GroupedEvoGame::Parameters prm;
   {
     std::ifstream fin(argv[1]);
     nlohmann::json input;
@@ -87,13 +87,13 @@ int main(int argc, char *argv[]) {
     input["p_mu"] = -1.0;
     input["weighted_sampling"] = 1;
     input["parallel_update"] = 0;
-    prm = input.get<MultiLevelEvoGame::Parameters>();
+    prm = input.get<GroupedEvoGame::Parameters>();
   }
 
   MeasureElapsed("initialize");
 
-  MultiLevelEvoGame eco(prm);
-  MultiLevelEvoGame::Species current_species = eco.species[0];
+  GroupedEvoGame eco(prm);
+  GroupedEvoGame::Species current_species = eco.species[0];
 
   uint64_t initial_species_id;
   bool is_measuring_lifetime = false;
@@ -112,7 +112,7 @@ int main(int argc, char *argv[]) {
 
   for (size_t t = 0; t < prm.T_max; t++) {
     uint64_t mut_id = eco.SampleStrategySpace();
-    MultiLevelEvoGame::Species mut(mut_id, prm.error_rate);
+    GroupedEvoGame::Species mut(mut_id, prm.error_rate);
     double prob = eco.FixationProbLowMutation(mut, current_species);
     if (uni(eco.a_rnd[0]) < prob) {
       current_species = mut;

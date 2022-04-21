@@ -7,7 +7,7 @@
 #include <array>
 #include <chrono>
 #include <regex>
-#include "MultiLevelEvoGame.hpp"
+#include "GroupedEvoGame.hpp"
 #include "icecream-cpp/icecream.hpp"
 
 
@@ -37,17 +37,17 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  MultiLevelEvoGame::Parameters prm;
+  GroupedEvoGame::Parameters prm;
   {
     std::ifstream fin(argv[1]);
     nlohmann::json input;
     fin >> input;
-    prm = input.get<MultiLevelEvoGame::Parameters>();
+    prm = input.get<GroupedEvoGame::Parameters>();
   }
 
   MeasureElapsed("initialize");
 
-  MultiLevelEvoGame eco(prm);
+  GroupedEvoGame eco(prm);
 
   uint64_t initial_species_id;
   bool is_measuring_lifetime = false;

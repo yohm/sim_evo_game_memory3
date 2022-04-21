@@ -7,7 +7,7 @@
 #include <array>
 #include <chrono>
 #include <regex>
-#include "MultiLevelEvoGame.hpp"
+#include "GroupedEvoGame.hpp"
 #include "icecream-cpp/icecream.hpp"
 
 
@@ -37,12 +37,12 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  MultiLevelEvoGame::Parameters prm;
+  GroupedEvoGame::Parameters prm;
   {
     std::ifstream fin(argv[1]);
     nlohmann::json input;
     fin >> input;
-    prm = input.get<MultiLevelEvoGame::Parameters>();
+    prm = input.get<GroupedEvoGame::Parameters>();
 
     if (prm.strategy_space != std::array<size_t,2>{1,1}) {
       throw std::runtime_error("strategy space must be {1,1}");
@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
 
   MeasureElapsed("initialize");
 
-  MultiLevelEvoGame eco(prm);
+  GroupedEvoGame eco(prm);
 
   uint64_t initial_species_id;
   bool is_measuring_lifetime = false;

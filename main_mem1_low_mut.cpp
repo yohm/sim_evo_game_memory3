@@ -7,7 +7,7 @@
 #include <array>
 #include <chrono>
 #include <Eigen/Dense>
-#include "MultiLevelEvoGame.hpp"
+#include "GroupedEvoGame.hpp"
 #include "icecream-cpp/icecream.hpp"
 
 
@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
     std::cerr << "  Usage: " << argv[0] << " <benefit> <error_rate> <N> <M> <sigma> <sigma_g>" << std::endl;
   }
 
-  MultiLevelEvoGame::Parameters prm;
+  GroupedEvoGame::Parameters prm;
   prm.benefit = std::stod(argv[1]);
   prm.error_rate = std::stod(argv[2]);
   prm.N = std::stoi(argv[3]);
@@ -88,12 +88,12 @@ int main(int argc, char *argv[]) {
     << "sigma: " << prm.sigma << std::endl
     << "sigma_g: " << prm.sigma_g << std::endl;
 
-  MultiLevelEvoGame eco(prm);
+  GroupedEvoGame eco(prm);
 
   // prepare memory-1 species
   StrategySpace ss(1, 1);
   constexpr size_t N_SPECIES = 16;
-  std::vector<MultiLevelEvoGame::Species> v_species;
+  std::vector<GroupedEvoGame::Species> v_species;
   for (uint64_t i = 0; i < N_SPECIES; i++) {
     uint64_t gid = ss.ToGlobalID(i);
     v_species.emplace_back(gid, prm.error_rate);
