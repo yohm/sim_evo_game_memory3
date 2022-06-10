@@ -107,6 +107,20 @@ int main(int argc, char *argv[]) {
   tout.close();
 
   {
+    std::vector<std::pair<uint64_t,size_t>> v;
+    for (auto pair: eco.alld_killer_counter) {
+      v.emplace_back(pair);
+    }
+    std::sort(v.begin(), v.end(),
+              [] (const auto &x, const auto &y) {return x.second > y.second;});
+    std::ofstream fout("alld_killer.dat");
+    for (auto pair: v) {
+      if (pair.second <= 1) break;
+      fout << pair.first << ' ' << pair.second << std::endl;
+    }
+  }
+
+  {
     nlohmann::json output;
     output["cooperation_level"] = c_level_avg / count;
     output["friendly_rival_fraction"] = fr_fraction / count;

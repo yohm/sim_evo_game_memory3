@@ -117,6 +117,7 @@ class GroupedEvoGame {
   std::uniform_real_distribution<double> uni;
   std::map<std::pair<uint64_t,uint64_t>, double> prob_cache;
   std::map<uint64_t,Species> species_cache;
+  std::map<uint64_t,size_t> alld_killer_counter;
 
   double IntraGroupFixationProb(const Species& mutant, const Species& resident) const {
     // \frac{1}{\rho} = \sum_{i=0}^{N-1} \exp\left( \sigma_in \sum_{j=1}^{i} \left[(N-j-1)s_{yy} + js_{yx} - (N-j)s_{xy} - (j-1)s_{xx} \right] \right) \\
@@ -328,6 +329,17 @@ class GroupedEvoGame {
           prob = it->second;
         }
         if (uni(a_rnd[0]) < prob) {
+          // counting AllD Killer
+          const uint64_t alld_id = 18446744073709551615ull;
+          if (species[res_index].strategy_id == alld_id && immigrant.strategy_id != alld_id) {
+            auto found = alld_killer_counter.find(immigrant.strategy_id);
+            if (found == alld_killer_counter.end()) {
+              alld_killer_counter[immigrant.strategy_id] = 1;
+            }
+            else {
+              found->second += 1;
+            }
+          }
           species[res_index] = immigrant;
         }
       }
