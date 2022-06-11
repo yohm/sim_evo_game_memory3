@@ -58,6 +58,11 @@ class GroupedEvoGame {
       cooperation_level = strategy.CooperationLevel(e);
       is_efficient = strategy.IsEfficientTopo();
       is_defensible = strategy.IsDefensible();
+      if (is_efficient && strategy.ActionAt("cccccd") == Action::D && strategy.ActionAt("dddddd") == Action::C) {
+        is_wsls_like = true;
+      }
+      else { is_wsls_like = false; }
+      name = strategy.Name();
       mem_lengths = StrategySpace::MemLengths(_strategy_id);
       automaton_sizes[0] = strategy.MinimizeDFA(false).to_map().size();
       automaton_sizes[1] = strategy.MinimizeDFA(true).to_map().size();
@@ -66,10 +71,13 @@ class GroupedEvoGame {
     double cooperation_level;
     bool is_efficient;
     bool is_defensible;
+    bool is_wsls_like;
+    std::string name;
     StrategySpace::mem_t mem_lengths;
     std::array<size_t,2> automaton_sizes;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Species, strategy_id, cooperation_level, is_efficient, is_defensible, mem_lengths, automaton_sizes);
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Species, strategy_id, name, cooperation_level, is_efficient, is_defensible, is_wsls_like,
+                                   mem_lengths, automaton_sizes);
   };
 
   explicit GroupedEvoGame(Parameters _prm) :
@@ -423,6 +431,15 @@ class GroupedEvoGame {
     size_t count = 0;
     for (const Species& s: species) {
       if (s.is_efficient && !s.is_defensible) count++;
+    }
+    return count;
+  }
+
+  // number of WSLS-like
+  size_t NumWSLSLike() const {
+    size_t count = 0;
+    for (const Species& s: species) {
+      if (s.is_wsls_like) count++;
     }
     return count;
   }
