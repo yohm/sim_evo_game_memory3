@@ -37,10 +37,19 @@ plt.plot(dat[:,0]/xscale, dat[:,2], '.-', label='friendly rival')
 plt.plot(dat[:,0]/xscale, dat[:,3], '.-', label='efficient')
 plt.plot(dat[:,0]/xscale, dat[:,4], '.-', label='rival')
 plt.plot(dat[:,0]/xscale, dat[:,5], '.-', label='WSLS-like')
-plt.plot(dat[:,0]/xscale, dat[:,6], '.-', label='diversity')
 plt.legend()
 # %%
 plt.savefig("timeseries.png")
+
+# %%
+plt.clf()
+xscale = 10**digit
+plt.xlabel( r'time ($\times 10^{' + f"{digit:.0f}" + r'}$)')
+plt.ylabel(r'diversity')
+plt.plot(dat[:,0]/xscale, dat[:,6], '.-', label='diversity')
+plt.savefig("diversity.png")
+
+
 # %%
 plt.clf()
 

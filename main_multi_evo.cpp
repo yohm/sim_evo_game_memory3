@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
       tout << t + 1 << ' ' << eco.CooperationLevel() << ' ' << eco.NumFriendlyRival() * m_inv
                     << ' ' << eco.NumEfficient() * m_inv << ' ' << eco.NumDefensible() * m_inv
                     << ' ' << eco.NumWSLSLike() * m_inv
-                    << ' ' << eco.Diversity() * m_inv
+                    << ' ' << eco.Diversity()
                     << ' ' << mem[0] << ' ' << mem[1]
                     << ' ' << a_sizes[0] << ' ' << a_sizes[1]
                     << std::endl;
