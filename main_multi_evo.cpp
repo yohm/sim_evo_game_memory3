@@ -138,10 +138,22 @@ int main(int argc, char *argv[]) {
   }
 
   {
-    nlohmann::json j;
+    auto comp = [](const GroupedEvoGame::Species& x, const GroupedEvoGame::Species& y) { return x.strategy_id < y.strategy_id; };
+    std::map<GroupedEvoGame::Species,size_t,decltype(comp)> species_count(comp);
     for (const auto& s: eco.species) {
-      j.emplace_back(s);
+      if (species_count.find(s) == species_count.end()) {
+        species_count[s] = 1;
+      }
+      else {
+        species_count[s] += 1;
+      }
     }
+    using pair_t = std::pair<GroupedEvoGame::Species,size_t>;
+    std::vector<pair_t> v;
+    for (const auto& pair: species_count) { v.emplace_back(pair); }
+    std::sort(v.begin(), v.end(), [](const pair_t& lhs, const pair_t& rhs) { return lhs.second > rhs.second; } );
+
+    nlohmann::json j = v;
     std::ofstream fout("final_state.json");
     fout << j.dump(2);
     fout.close();
