@@ -40,13 +40,13 @@ class GroupedEvoGame {
     std::array<size_t,2> strategy_space;
     int weighted_sampling;  // 1: weighted sampling, 0: uniform sampling
     int parallel_update;    // 1: parallel update, 0: serial update
-    int without_FR;         // 1: sample without FR, 0: usual sampling
+    std::set<uint64_t> excluding_strategies;
     std::string initial_condition; // "random", "TFT", "WSLS", "TFT-ATFT", "CAPRI"
     uint64_t _seed;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Parameters, T_max, T_print, T_init,
                                    M, N, benefit, error_rate, sigma_in, sigma_out, p_nu,
-                                   strategy_space, weighted_sampling, parallel_update, without_FR, initial_condition, _seed);
+                                   strategy_space, weighted_sampling, parallel_update, excluding_strategies, initial_condition, _seed);
   };
 
 
@@ -290,13 +290,11 @@ class GroupedEvoGame {
     return (prm.weighted_sampling==1) ? WeightedSampleStrategySpace() : UniformSampleStrategySpace();
   }
 
-  uint64_t SampleStrategySpaceWithoutFR() {
+  uint64_t SampleStrategySpaceWithExclusion() {
     uint64_t candidate = SampleStrategySpace();
-    StrategyM3 str(candidate);
-    while (str.IsDefensible() && str.IsEfficientTopo()) {
-      std::cerr << "FR detected" << std::endl;
+    while (prm.excluding_strategies.find(candidate) != prm.excluding_strategies.end()) {
+      std::cerr << "excluding strategy detected:" << candidate << std::endl;
       candidate = SampleStrategySpace();
-      str = StrategyM3(candidate);
     }
     return candidate;
   }
@@ -316,7 +314,7 @@ class GroupedEvoGame {
       size_t res_index = d0(a_rnd[0]);
       Species resident = species[res_index];
       if (uni(a_rnd[0]) < prm.p_nu) {  // mutation
-        uint64_t mut_id = (prm.without_FR == 0) ? SampleStrategySpace() : SampleStrategySpaceWithoutFR();
+        uint64_t mut_id = (prm.excluding_strategies.empty()) ? SampleStrategySpace() : SampleStrategySpaceWithExclusion();
         auto it = species_cache.find(mut_id);
         Species mutant = (it == species_cache.end()) ? Species(mut_id, prm.error_rate) : it->second;
         if (it == species_cache.end() && mutant.mem_lengths[0]+mutant.mem_lengths[1] <= 4) {

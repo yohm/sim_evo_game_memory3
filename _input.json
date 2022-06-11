@@ -12,7 +12,7 @@
   "strategy_space": [3, 3],
   "weighted_sampling": 1,
   "parallel_update": 0,
-  "without_FR": 0,
+  "excluding_strategies": [],
   "initial_condition": "random",
   "_seed": 1234567890
 }
