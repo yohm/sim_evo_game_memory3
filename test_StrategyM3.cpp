@@ -560,33 +560,8 @@ StrategyM3 ParseStrategy(const std::string& str) {
     return StrategyM3{gid};
   }
   else {
-    std::map<std::string,StrategyM3> m = {
-      {"ALLC", StrategyM3::ALLC()},
-      {"ALLD", StrategyM3::ALLD()},
-      {"TFT", StrategyM3::TFT()},
-      {"WSLS", StrategyM3::WSLS()},
-      {"TF2T", StrategyM3::TF2T()},
-      {"TFT-ATFT", StrategyM3::TFT_ATFT()},
-      {"CAPRI", StrategyM3::CAPRI()},
-      {"CAPRI2", StrategyM3::CAPRI2()},
-      {"AON2", StrategyM3::AON(2)},
-      {"AON3", StrategyM3::AON(3)},
-    };
-    if (m.find(str) != m.end()) {
-      return m.at(str);
-    }
-    else {
-      std::cerr << "Error: unknown strategy " << str << std::endl;
-      std::cerr << "  supported strategies are [";
-      for (const auto& kv: m) {
-        std::cerr << kv.first << ", ";
-      }
-      std::cerr << "]" << "\n" << "Or\n  'm1-[0-15]'" << std::endl;
-
-      throw std::runtime_error("unknown strategy");
-    }
+    return StrategyM3::ConstructFromName(str);
   }
-  return StrategyM3{0ull};
 }
 
 int main(int argc, char* argv[]) {

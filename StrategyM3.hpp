@@ -122,6 +122,7 @@ class StrategyM3 {
     }
     return b.to_ullong();
   }
+  std::string Name() const;  // return NAME
   void Inspect(std::ostream& out) const;
 
   Action ActionAt(const StateM3 &s) const { return actions[s.ID()]; }
@@ -150,10 +151,12 @@ class StrategyM3 {
   int NextITGState(const StateM3 &s) const; // Trace the intra-transition graph by one step
   UnionFind MinimizeDFA(bool noisy = false) const;
   Partition MinimizeDFAHopcroft(bool noisy) const;
+  static StrategyM3 ConstructFromName(const std::string& name);
   static StrategyM3 ALLC() { return StrategyM3("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"); }
   static StrategyM3 ALLD() { return StrategyM3("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"); }
   static StrategyM3 TFT() { return StrategyM3("cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"); }
   static StrategyM3 WSLS() { return StrategyM3("cdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdc"); }
+  static StrategyM3 GRIM() { return StrategyM3("cdcdcdcdddddddddcdcdcdcdddddddddcdcdcdcdddddddddcdcdcdcddddddddd"); }
   static StrategyM3 TF2T() { return StrategyM3("cccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccd"); }
   static StrategyM3 CAPRI2();
   static StrategyM3 sCAPRI2();

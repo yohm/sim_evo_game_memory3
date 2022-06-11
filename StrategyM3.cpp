@@ -19,9 +19,59 @@ StrategyM3::StrategyM3(uint64_t acts) {
   }
 }
 
+std::string StrategyM3::Name() const {
+  const static std::map<uint64_t,std::string> m = {
+    {ALLC().ID(), "ALLC"},
+    {ALLD().ID(), "ALLD"},
+    {TFT().ID(), "TFT"},
+    {WSLS().ID(), "WSLS"},
+    {GRIM().ID(), "GRIM"},
+    {TF2T().ID(), "TF2T"},
+    {TFT_ATFT().ID(), "TFT-ATFT"},
+    {CAPRI().ID(), "CAPRI"},
+    {AON(2).ID(), "AON2"},
+    {AON(3).ID(), "AON3"}
+  };
+
+  if (m.find(ID()) != m.end()) {
+    return m.at(ID());
+  }
+  else {
+    return "";
+  }
+}
+
+StrategyM3 StrategyM3::ConstructFromName(const std::string& name) {
+  const static std::map<std::string,StrategyM3> m = {
+    {"ALLC", ALLC()},
+    {"ALLD", ALLD()},
+    {"TFT", TFT()},
+    {"WSLS", WSLS()},
+    {"GRIM", GRIM()},
+    {"TF2T", TF2T()},
+    {"TFT-ATFT", TFT_ATFT()},
+    {"CAPRI", CAPRI()},
+    {"AON2", AON(2)},
+    {"AON3", AON(3)}
+  };
+
+  if (m.find(name) != m.end()) {
+    return m.at(name);
+  }
+  else {
+    std::cerr << "Error: unknown strategy " << name << std::endl;
+    std::cerr << "  supported strategies are [";
+    for (const auto& kv: m) { std::cerr << kv.first << ", "; }
+    std::cerr << "]" << std::endl;
+    throw std::runtime_error("unknown strategy name");
+  }
+}
+
 void StrategyM3::Inspect(std::ostream& out) const {
   out << "ID: " << ID() << "\n"
-      << "String: " << ToString() << "\n";
+      << "String: " << ToString() << "\n"
+      << "Name: " << Name() << "\n";
+
   for (size_t i = 0; i < 64; i++) {
     out << StateM3(i) << "| " << actions[i] << "    ";
     if (i % 8 == 7) out << "\n";
