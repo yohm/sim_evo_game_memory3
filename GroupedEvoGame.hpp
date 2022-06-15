@@ -82,10 +82,13 @@ class GroupedEvoGame {
 
   explicit GroupedEvoGame(Parameters _prm) :
     prm(std::move(_prm)), space(prm.strategy_space[0], prm.strategy_space[1]) {
-    for (uint32_t t = 0; t < omp_get_max_threads(); t++) {
+    const int num_threads = omp_get_max_threads();
+    for (uint32_t t = 0; t < num_threads; t++) {
       std::seed_seq s = {static_cast<uint32_t>(prm._seed), t};
       a_rnd.emplace_back(s);
     }
+    prob_caches.resize(num_threads);
+    species_caches.resize(num_threads);
 
     species.reserve(prm.M);
     if (prm.initial_condition == "random") {
@@ -124,8 +127,10 @@ class GroupedEvoGame {
   std::vector<Species> species;
   std::vector<std::mt19937_64> a_rnd;
   std::uniform_real_distribution<double> uni;
-  std::map<std::pair<uint64_t,uint64_t>, double> prob_cache;
-  std::map<uint64_t,Species> species_cache;
+  using prob_cache_t = std::map<std::pair<uint64_t,uint64_t>,double>;
+  std::vector<prob_cache_t> prob_caches;
+  using species_cache_t = std::map<uint64_t,Species>;
+  std::vector<species_cache_t> species_caches;
   std::map<uint64_t,size_t> alld_killer_counter;
 
   double IntraGroupFixationProb(const Species& mutant, const Species& resident) const {
@@ -320,53 +325,7 @@ class GroupedEvoGame {
     for (int t = 0; t < prm.M; t++) {
       std::uniform_int_distribution<size_t> d0(0, prm.M-1);
       size_t res_index = d0(a_rnd[0]);
-      Species resident = species[res_index];
-      if (uni(a_rnd[0]) < prm.p_nu) {  // mutation
-        uint64_t mut_id = (prm.excluding_strategies.empty()) ? SampleStrategySpace() : SampleStrategySpaceWithExclusion();
-        auto it = species_cache.find(mut_id);
-        Species mutant = (it == species_cache.end()) ? Species(mut_id, prm.error_rate) : it->second;
-        if (it == species_cache.end() && mutant.mem_lengths[0]+mutant.mem_lengths[1] <= 4) {
-          species_cache.insert( std::make_pair(mut_id, mutant));
-        }
-        double f = IntraGroupFixationProb(mutant, resident);
-        if (uni(a_rnd[0]) < f) species[res_index] = mutant;
-      }
-      else {  // migration
-        std::uniform_int_distribution<size_t> d1(1, prm.M-1);
-        size_t mig_index = static_cast<size_t>(res_index + d1(a_rnd[0])) % prm.M;
-        Species immigrant = species[mig_index];
-        auto it = prob_cache.find({immigrant.strategy_id, resident.strategy_id});
-        double prob;
-        if (it == prob_cache.end()) {
-          double p = InterGroupImitationProb(immigrant, resident);
-          double f = IntraGroupFixationProb(immigrant, resident);
-          prob = p*f;
-          prob_cache.insert({ {immigrant.strategy_id, resident.strategy_id}, prob});
-        }
-        else {
-          prob = it->second;
-        }
-        if (uni(a_rnd[0]) < prob) {
-          // counting AllD Killer
-          const uint64_t alld_id = 18446744073709551615ull;
-          if (species[res_index].strategy_id == alld_id && immigrant.strategy_id != alld_id) {
-            auto found = alld_killer_counter.find(immigrant.strategy_id);
-            if (found == alld_killer_counter.end()) {
-              alld_killer_counter[immigrant.strategy_id] = 1;
-            }
-            else {
-              found->second += 1;
-            }
-          }
-          species[res_index] = immigrant;
-        }
-      }
-    }
-    constexpr size_t CACHE_SIZE_MAX = 1000;
-    if (prob_cache.size() > CACHE_SIZE_MAX) {
-      std::cerr << "deleting cache" << std::endl;
-      ClearCache();
-      std::cerr << "  cache size: " << prob_cache.size() << std::endl;
+      UpdateSpecies(res_index, species, 0);
     }
   }
 
@@ -374,41 +333,66 @@ class GroupedEvoGame {
     const std::vector<Species> prev_species = species;
     #pragma omp parallel for
     for (size_t i = 0; i < prm.M; i++) {
-      const Species& resident = prev_species[i];
+      const size_t res_index = i;
       int th = omp_get_thread_num();
-      if (uni(a_rnd[th]) < prm.p_nu) {
-        uint64_t mut_id = (prm.excluding_strategies.empty()) ? SampleStrategySpace() : SampleStrategySpaceWithExclusion();
-        Species mutant = Species(mut_id, prm.error_rate);
-        double f = IntraGroupFixationProb(mutant, resident);
-        if (uni(a_rnd[0]) < f) {
-          species[i] = mutant;
-        }
-      }
-      else {
-        std::uniform_int_distribution<size_t> d1(1, prm.M-1);
-        size_t mig_index = static_cast<size_t>(i + d1(a_rnd[0])) % prm.M;
-        Species immigrant = prev_species[mig_index];
-        double p = InterGroupImitationProb(immigrant, resident);
-        double f = IntraGroupFixationProb(immigrant, resident);
-        double prob = p*f;
-        if (uni(a_rnd[0]) < prob) {
-          species[i] = immigrant;
-        }
-      }
+      UpdateSpecies(res_index, prev_species, th);
     }
   }
 
-  void ClearCache() {
+  void UpdateSpecies(size_t res_index, const std::vector<Species>& prev_species, int th) {
+    const Species& resident = prev_species[res_index];
+    if (uni(a_rnd[th]) < prm.p_nu) {
+      uint64_t mut_id = (prm.excluding_strategies.empty()) ? SampleStrategySpace() : SampleStrategySpaceWithExclusion();
+      auto it = species_caches[th].find(mut_id);
+      Species mutant = (it == species_caches[th].end()) ? Species(mut_id, prm.error_rate) : it->second;
+      if (it == species_caches[th].end() && mutant.mem_lengths[0]+mutant.mem_lengths[1] <= 4) {
+        species_caches[th].insert( std::make_pair(mut_id, mutant));
+      }
+      double f = IntraGroupFixationProb(mutant, resident);
+      if (uni(a_rnd[th]) < f) {
+        species[res_index] = mutant;
+      }
+    }
+    else {
+      std::uniform_int_distribution<size_t> d1(1, prm.M-1);
+      size_t mig_index = static_cast<size_t>(res_index + d1(a_rnd[th])) % prm.M;
+      const Species& immigrant = prev_species[mig_index];
+      auto it = prob_caches[th].find({immigrant.strategy_id, resident.strategy_id});
+      double prob;
+      if (it == prob_caches[th].end()) {
+        double p = InterGroupImitationProb(immigrant, resident);
+        double f = IntraGroupFixationProb(immigrant, resident);
+        prob = p*f;
+        prob_caches[th].insert({ {immigrant.strategy_id, resident.strategy_id}, prob});
+      }
+      else {
+        prob = it->second;
+      }
+      if (uni(a_rnd[th]) < prob) {
+        species[res_index] = immigrant;
+      }
+    }
+
+    constexpr size_t CACHE_SIZE_MAX = 1000;
+    if (prob_caches[th].size() > CACHE_SIZE_MAX) {
+      std::cerr << "deleting cache at " << th << std::endl;
+      ClearCache(prev_species);
+      std::cerr << "  cache size: " << prob_caches[th].size() << std::endl;
+    }
+  }
+
+  void ClearCache(const std::vector<Species>& prev_species) {
     std::set<uint64_t> existing;
-    for (const auto& s: species) {
+    for (const auto& s: prev_species) {
       existing.insert(s.strategy_id);
     }
 
-    for (auto it = prob_cache.begin(); it != prob_cache.end(); ) {
+    int th = omp_get_thread_num();
+    for (auto it = prob_caches[th].begin(); it != prob_caches[th].end(); ) {
       uint64_t sid1 = it->first.first, sid2 = it->first.second;
       if (existing.find(sid1) == existing.end() || existing.find(sid2) == existing.end()) {
         // if strategy does not exist in the current species
-        it = prob_cache.erase(it);
+        it = prob_caches[th].erase(it);
       }
       else {
         it++;
