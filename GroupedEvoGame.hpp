@@ -371,31 +371,29 @@ class GroupedEvoGame {
   }
 
   void UpdateParallel() {
-    std::vector<Species> candidates = species;
+    const std::vector<Species> prev_species = species;
     #pragma omp parallel for
     for (size_t i = 0; i < prm.M; i++) {
+      const Species& resident = prev_species[i];
       int th = omp_get_thread_num();
       if (uni(a_rnd[th]) < prm.p_nu) {
-        uint64_t mut_id = SampleStrategySpace();
-        candidates[i] = Species(mut_id, prm.error_rate);
-      }
-      else {
-        std::uniform_int_distribution<size_t> dist(1, prm.M-1);
-        size_t target = static_cast<size_t>(i + dist(a_rnd[th])) % prm.M;
-        double p = InterGroupImitationProb(species[target], species[i]);
-        if (uni(a_rnd[th]) < p) {
-          candidates[i] = species[target];
+        uint64_t mut_id = (prm.excluding_strategies.empty()) ? SampleStrategySpace() : SampleStrategySpaceWithExclusion();
+        Species mutant = Species(mut_id, prm.error_rate);
+        double f = IntraGroupFixationProb(mutant, resident);
+        if (uni(a_rnd[0]) < f) {
+          species[i] = mutant;
         }
       }
-    }
-
-    #pragma omp parallel for
-    for (size_t i = 0; i < prm.M; i++) {
-      if (candidates[i].strategy_id == species[i].strategy_id) continue;
-      double f = IntraGroupFixationProb(candidates[i], species[i]);
-      int th = omp_get_thread_num();
-      if (uni(a_rnd[th]) < f) {
-        species[i] = candidates[i];
+      else {
+        std::uniform_int_distribution<size_t> d1(1, prm.M-1);
+        size_t mig_index = static_cast<size_t>(i + d1(a_rnd[0])) % prm.M;
+        Species immigrant = prev_species[mig_index];
+        double p = InterGroupImitationProb(immigrant, resident);
+        double f = IntraGroupFixationProb(immigrant, resident);
+        double prob = p*f;
+        if (uni(a_rnd[0]) < prob) {
+          species[i] = immigrant;
+        }
       }
     }
   }
