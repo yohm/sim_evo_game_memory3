@@ -65,6 +65,8 @@ int main(int argc, char *argv[]) {
   size_t count = 0ul;
 
   std::ofstream tout("timeseries.dat");
+  std::ofstream tout_2("most_freq_species.dat");
+  GroupedEvoGame::Species prev_most_frequent = eco.species[0];
 
   for (size_t t = 0; t < prm.T_max; t++) {
     eco.Update();
@@ -103,9 +105,15 @@ int main(int argc, char *argv[]) {
                     << ' ' << a_sizes[0] << ' ' << a_sizes[1]
                     << std::endl;
       // IC(t, eco.species);
+      GroupedEvoGame::Species s = eco.MostFrequentSpecies();
+      if (s.strategy_id != prev_most_frequent.strategy_id) {
+        tout_2 << t+1 << "\n" << nlohmann::json(s) << std::endl;
+        prev_most_frequent = s;
+      }
     }
   }
   tout.close();
+  tout_2.close();
 
   {
     std::vector<std::pair<uint64_t,size_t>> v;

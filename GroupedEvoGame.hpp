@@ -467,6 +467,25 @@ class GroupedEvoGame {
     });
   }
 
+  Species MostFrequentSpecies() const {
+    auto comp = [](const Species& x, const Species& y) { return x.strategy_id < y.strategy_id; };
+    std::map<Species,double,decltype(comp)> freq(comp);
+    for (const Species& s: species) {
+      if (freq.find(s) == freq.end()) { freq[s] = 1.0; }
+      else { freq[s] += 1.0; }
+    }
+
+    double max_freq = 0.0;
+    Species most_freq_species = species[0];
+    for (const auto& p: freq) {
+      if (p.second > max_freq) {
+        most_freq_species = p.first;
+        max_freq = p.second;
+      }
+    }
+    return most_freq_species;
+  }
+
   double Diversity() const {
     // exponential Shannon entropy
     std::map<uint64_t,double> freq;
