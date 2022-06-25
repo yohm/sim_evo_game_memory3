@@ -117,12 +117,25 @@ int main(int argc, char *argv[]) {
 
   {
     std::vector<std::pair<uint64_t,size_t>> v;
-    for (auto pair: eco.alld_killer_counter) {
+    for (auto pair: eco.alld_killer_counter[0]) {
       v.emplace_back(pair);
     }
     std::sort(v.begin(), v.end(),
               [] (const auto &x, const auto &y) {return x.second > y.second;});
-    std::ofstream fout("alld_killer.dat");
+    std::ofstream fout("alld_killer_migration.dat");
+    for (auto pair: v) {
+      if (pair.second <= 1) break;
+      fout << pair.first << ' ' << pair.second << std::endl;
+    }
+  }
+  {
+    std::vector<std::pair<uint64_t,size_t>> v;
+    for (auto pair: eco.alld_killer_counter[1]) {
+      v.emplace_back(pair);
+    }
+    std::sort(v.begin(), v.end(),
+              [] (const auto &x, const auto &y) {return x.second > y.second;});
+    std::ofstream fout("alld_killer_mutation.dat");
     for (auto pair: v) {
       if (pair.second <= 1) break;
       fout << pair.first << ' ' << pair.second << std::endl;

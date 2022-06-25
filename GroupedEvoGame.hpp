@@ -131,7 +131,7 @@ class GroupedEvoGame {
   std::vector<prob_cache_t> prob_caches;
   using species_cache_t = std::map<uint64_t,Species>;
   std::vector<species_cache_t> species_caches;
-  std::map<uint64_t,size_t> alld_killer_counter;
+  std::map<uint64_t,size_t> alld_killer_counter[2];
 
   double IntraGroupFixationProb(const Species& mutant, const Species& resident) const {
     // \frac{1}{\rho} = \sum_{i=0}^{N-1} \exp\left( \sigma_in \sum_{j=1}^{i} \left[(N-j-1)s_{yy} + js_{yx} - (N-j)s_{xy} - (j-1)s_{xx} \right] \right) \\
@@ -350,6 +350,7 @@ class GroupedEvoGame {
       }
       double f = IntraGroupFixationProb(mutant, resident);
       if (uni(a_rnd[th]) < f) {
+        CountAllDKiller(resident.strategy_id, mutant.strategy_id, false);
         species[res_index] = mutant;
       }
     }
@@ -369,6 +370,7 @@ class GroupedEvoGame {
         prob = it->second;
       }
       if (uni(a_rnd[th]) < prob) {
+        CountAllDKiller(resident.strategy_id, immigrant.strategy_id, true);
         species[res_index] = immigrant;
       }
     }
@@ -378,6 +380,22 @@ class GroupedEvoGame {
       std::cerr << "deleting cache at " << th << std::endl;
       ClearCache(prev_species);
       std::cerr << "  cache size: " << prob_caches[th].size() << std::endl;
+    }
+  }
+
+  void CountAllDKiller(uint64_t old_str_id, uint64_t new_str_id, bool is_migration) {
+    constexpr uint64_t alld_id = 18446744073709551615ULL;
+    if (prm.parallel_update) return;  // don't count under parallel update
+    if (old_str_id == alld_id && new_str_id != alld_id) {
+      // std::cerr << old_str_id << ' ' << new_str_id << std::endl;
+      auto& counter = (is_migration) ? alld_killer_counter[0] : alld_killer_counter[1];
+      auto found = counter.find(new_str_id);
+      if (found == counter.end()) {
+        counter[new_str_id] = 1;
+      }
+      else {
+        found->second += 1;
+      }
     }
   }
 
