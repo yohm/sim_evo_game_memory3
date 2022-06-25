@@ -80,7 +80,49 @@ class GroupedEvoGame {
                                    mem_lengths, automaton_sizes);
   };
 
-  explicit GroupedEvoGame(Parameters _prm) :
+  class MutantList {  // list of mutant strategies
+    public:
+    MutantList() : normalized(false) {}
+    void AddSpecies(uint64_t mut_id, double weight) {
+      if (weight <= 0.0) {
+        throw std::runtime_error("weight is not positive");
+      }
+      strategy_ids.emplace_back(mut_id);
+      weights.emplace_back(weight);
+      normalized = false;
+    }
+    void Normalize() {
+      if (weights.empty()) {
+        throw std::runtime_error("empty list");
+      }
+      double s = 0.0;
+      for (double w: weights) {
+        s += w;
+      }
+      for (double& w: weights) {
+        w = w / s;
+      }
+      normalized = true;
+    }
+    uint64_t Sample(double r01) const {
+      assert(normalized && r01 >= 0.0 && r01 < 1.0);
+      for (size_t i = 0; i < weights.size(); i++) {
+        r01 -= weights[i];
+        if (r01 < 0.0) {
+          return strategy_ids[i];
+        }
+      }
+      throw std::runtime_error("cannot happen");
+    }
+    bool Empty() const {
+      return strategy_ids.empty();
+    }
+    std::vector<uint64_t> strategy_ids;
+    std::vector<double> weights;
+    bool normalized;
+  };
+
+  explicit GroupedEvoGame(Parameters _prm, const MutantList& m_list = MutantList()) :
     prm(std::move(_prm)), space(prm.strategy_space[0], prm.strategy_space[1]) {
     const int num_threads = omp_get_max_threads();
     for (uint32_t t = 0; t < num_threads; t++) {
@@ -89,6 +131,7 @@ class GroupedEvoGame {
     }
     prob_caches.resize(num_threads);
     species_caches.resize(num_threads);
+    mutant_list = m_list;
 
     species.reserve(prm.M);
     if (prm.initial_condition == "random") {
@@ -124,6 +167,7 @@ class GroupedEvoGame {
   };
   Parameters prm;
   StrategySpace space;
+  MutantList mutant_list;
   std::vector<Species> species;
   std::vector<std::mt19937_64> a_rnd;
   std::uniform_real_distribution<double> uni;
@@ -300,7 +344,14 @@ class GroupedEvoGame {
   }
 
   uint64_t SampleStrategySpace() {
-    return (prm.weighted_sampling==1) ? WeightedSampleStrategySpace() : UniformSampleStrategySpace();
+    if (mutant_list.Empty()) {
+      return (prm.weighted_sampling==1) ? WeightedSampleStrategySpace() : UniformSampleStrategySpace();
+    }
+    else {
+      const int th = omp_get_thread_num();
+      double r = uni(a_rnd[th]);
+      return mutant_list.Sample(r);
+    }
   }
 
   uint64_t SampleStrategySpaceWithExclusion() {

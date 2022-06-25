@@ -31,11 +31,13 @@ int main(int argc, char *argv[]) {
   icecream::ic.prefix("[", omp_get_thread_num, "/" , omp_get_max_threads, "]: ");
 
   Eigen::initParallel();
-  if( argc != 2 ) {
+  if( argc != 2 && argc != 3 ) {
     std::cerr << "Error : invalid argument" << std::endl;
     std::cerr << "  Usage : " << argv[0] << " <parameter_json_file>" << std::endl;
+    std::cerr << "  Usage : " << argv[0] << " <parameter_json_file> <mutant_list>" << std::endl;
     return 1;
   }
+
 
   GroupedEvoGame::Parameters prm;
   {
@@ -45,9 +47,23 @@ int main(int argc, char *argv[]) {
     prm = input.get<GroupedEvoGame::Parameters>();
   }
 
-  MeasureElapsed("initialize");
+  GroupedEvoGame::MutantList mutant_list;
+  if (argc == 3) {
+    // load mutant_list
+    std::ifstream fin(argv[2]);
+    while (fin) {
+      uint64_t sid;
+      double weight;
+      fin >> sid >> weight;
+      if (!fin) break;
+      mutant_list.AddSpecies(sid, weight);
+    }
+    mutant_list.Normalize();
+    IC(mutant_list.strategy_ids, mutant_list.weights);
+  }
 
-  GroupedEvoGame eco(prm);
+  MeasureElapsed("initialize");
+  GroupedEvoGame eco(prm, mutant_list);
 
   uint64_t initial_species_id;
   bool is_measuring_lifetime = false;
