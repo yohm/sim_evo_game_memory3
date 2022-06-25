@@ -112,19 +112,25 @@ void PrintFixationProbs(uint64_t resident_id) {
 
   GroupedEvoGame::Species resident(resident_id, prm.error_rate);
 
-  std::map<double,int> fixation_prob_histo;
-  double sum = 0.0;
+  std::map<double,int> fixation_prob_histo_f, fixation_prob_histo_p, fixation_prob_histo_pf;
+  double sum_f = 0.0, sum_p = 0.0, sum_pf = 0.0;
   size_t N = 1000;
   for (size_t i = 0; i < N; i++) {
     uint64_t mut_id = eco.SampleStrategySpace();
     GroupedEvoGame::Species mut(mut_id, eco.prm.error_rate);
     double f = eco.IntraGroupFixationProb(mut, resident);
-    sum += f;
-    double key = std::round(f * 10.0) / 10.0;
-    fixation_prob_histo[key] = GetWithDef(fixation_prob_histo, key, 0) + 1;
+    double p = eco.InterGroupImitationProb(mut, resident);
+    sum_f += f;
+    sum_p += p;
+    sum_pf += p*f;
+    double key_f = std::round(f * 10.0) / 10.0;
+    fixation_prob_histo_f[key_f] = GetWithDef(fixation_prob_histo_f, key_f, 0) + 1;
+    double key_p = std::round(p * 10.0) / 10.0;
+    fixation_prob_histo_p[key_p] = GetWithDef(fixation_prob_histo_p, key_p, 0) + 1;
+    double key_pf = std::round(p*f * 10.0) / 10.0;
+    fixation_prob_histo_pf[key_pf] = GetWithDef(fixation_prob_histo_pf, key_pf, 0) + 1;
   }
-  double fixation_prob = sum / N;
-  IC(fixation_prob_histo, fixation_prob);
+  IC(fixation_prob_histo_f, fixation_prob_histo_p, fixation_prob_histo_pf, sum_f/N, sum_p/N, sum_pf/N);
 }
 
 int main(int argc, char* argv[]) {
