@@ -84,12 +84,32 @@ class GroupedEvoGame {
     public:
     MutantList() : normalized(false) {}
     void AddSpecies(uint64_t mut_id, double weight) {
-      if (weight <= 0.0) {
-        throw std::runtime_error("weight is not positive");
+      if (weight < 0.0) {
+        throw std::runtime_error("weight is negative");
       }
       strategy_ids.emplace_back(mut_id);
       weights.emplace_back(weight);
       normalized = false;
+    }
+    void LoadFromFile(const std::string& path) {
+      std::ifstream fin(path);
+      std::regex re_d(R"(^\d+$)");
+      while (fin) {
+        std::string strategy;
+        uint64_t sid;
+        double weight;
+        fin >> strategy >> weight;
+        if (!fin) break;
+        if (std::regex_search(strategy, re_d)) {
+          sid = std::stoull(strategy);
+        }
+        else {
+          sid = StrategyM3::ConstructFromName(strategy).ID();
+        }
+        AddSpecies(sid, weight);
+      }
+      Normalize();
+      IC(strategy_ids, weights);
     }
     void Normalize() {
       if (weights.empty()) {

@@ -49,17 +49,7 @@ int main(int argc, char *argv[]) {
 
   GroupedEvoGame::MutantList mutant_list;
   if (argc == 3) {
-    // load mutant_list
-    std::ifstream fin(argv[2]);
-    while (fin) {
-      uint64_t sid;
-      double weight;
-      fin >> sid >> weight;
-      if (!fin) break;
-      mutant_list.AddSpecies(sid, weight);
-    }
-    mutant_list.Normalize();
-    IC(mutant_list.strategy_ids, mutant_list.weights);
+    mutant_list.LoadFromFile(argv[2]);
   }
 
   MeasureElapsed("initialize");
