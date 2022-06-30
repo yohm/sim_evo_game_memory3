@@ -45,6 +45,7 @@ int main(int argc, char *argv[]) {
     nlohmann::json input;
     fin >> input;
     prm = input.get<GroupedEvoGame::Parameters>();
+    prm.alld_mutant_prob = input.value("alld_mutant_prob", 0.0);
   }
 
   GroupedEvoGame::MutantList mutant_list;

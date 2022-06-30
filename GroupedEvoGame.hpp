@@ -40,13 +40,15 @@ class GroupedEvoGame {
     std::array<size_t,2> strategy_space;
     int weighted_sampling;  // 1: weighted sampling, 0: uniform sampling
     int parallel_update;    // 1: parallel update, 0: serial update
+    double alld_mutant_prob = 0.0;  // probability of introducing a mutant of ALLD
     std::set<uint64_t> excluding_strategies;
     std::string initial_condition; // "random", "TFT", "WSLS", "TFT-ATFT", "CAPRI"
     uint64_t _seed;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Parameters, T_max, T_print, T_init,
                                    M, N, benefit, error_rate, sigma_in, sigma_out, p_nu,
-                                   strategy_space, weighted_sampling, parallel_update, excluding_strategies, initial_condition, _seed);
+                                   strategy_space, weighted_sampling, parallel_update,
+                                   excluding_strategies, initial_condition, _seed);
   };
 
 
@@ -364,6 +366,12 @@ class GroupedEvoGame {
   }
 
   uint64_t SampleStrategySpace() {
+    if (prm.alld_mutant_prob > 0.0) {
+      const int th = omp_get_thread_num();
+      if (uni(a_rnd[th]) < prm.alld_mutant_prob) {
+        return StrategyM3::ALLD().ID();
+      }
+    }
     if (mutant_list.Empty()) {
       return (prm.weighted_sampling==1) ? WeightedSampleStrategySpace() : UniformSampleStrategySpace();
     }
