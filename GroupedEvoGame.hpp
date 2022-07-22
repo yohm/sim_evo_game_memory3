@@ -35,7 +35,7 @@ class GroupedEvoGame {
     size_t M, N;
     double benefit;
     double error_rate;
-    double sigma_in, sigma_out;
+    double sigma_in_b, sigma_out_b;  // product of sigma_in (simga_out) and (b-1). sigma*(b-1)
     double p_nu;  // probability of introducing a mutant
     std::array<size_t,2> strategy_space;
     int weighted_sampling;  // 1: weighted sampling, 0: uniform sampling
@@ -46,7 +46,7 @@ class GroupedEvoGame {
     uint64_t _seed;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Parameters, T_max, T_print, T_init,
-                                   M, N, benefit, error_rate, sigma_in, sigma_out, p_nu,
+                                   M, N, benefit, error_rate, sigma_in_b, sigma_out_b, p_nu,
                                    strategy_space, weighted_sampling, parallel_update,
                                    excluding_strategies, initial_condition, _seed);
   };
@@ -210,7 +210,7 @@ class GroupedEvoGame {
     double s_xy = xy[0];
     double s_yx = xy[1];
     size_t N = prm.N;
-    double sigma = prm.sigma_in;
+    double sigma_in = prm.sigma_in_b / (prm.benefit-1.0);
 
     auto num_games = static_cast<double>(N-1);
     s_xx /= num_games;
@@ -219,7 +219,7 @@ class GroupedEvoGame {
     s_yx /= num_games;
     double rho_inv = 0.0;
     for (int i=0; i < N; i++) {
-      double x = sigma * i * 0.5 * (
+      double x = sigma_in * i * 0.5 * (
         (double)(2*N-3-i) * s_yy
         + (double)(i+1) * s_yx
         - (double)(2*N-1-i) * s_xy
@@ -234,7 +234,8 @@ class GroupedEvoGame {
     double pi = (prm.benefit - 1.0) * s_focal.cooperation_level;
     double p_target = (prm.benefit - 1.0) * s_target.cooperation_level;
     // f_{A\to B} = { 1 + \exp[ \sigma_out (s_A - s_B) ] }^{-1}
-    return 1.0 / (1.0 + std::exp(prm.sigma_out * (pi - p_target) ));
+    double sigma_out = prm.sigma_out_b / (prm.benefit-1.0);
+    return 1.0 / (1.0 + std::exp(sigma_out * (pi - p_target) ));
   }
 
   double FixationProbLowMutation(const Species& mutant, const Species& resident) const {
@@ -247,7 +248,8 @@ class GroupedEvoGame {
     double rho_mut = IntraGroupFixationProb(mutant, resident);
     double rho_res = IntraGroupFixationProb(resident, mutant);
     // \eta = Q_i^{-}/Q_i^{+} = \rho_B / \rho_A * \exp[ \sigma_out (\pi_B - \pi_A) ]
-    double eta = rho_res / rho_mut * std::exp(prm.sigma_out * (pi_res - pi_mut) );
+    double sigma_out = prm.sigma_out_b / (prm.benefit-1.0);
+    double eta = rho_res / rho_mut * std::exp(sigma_out * (pi_res - pi_mut) );
     if (rho_mut == 0.0 && rho_res == 0.0) {
       icecream::ic.enable();
       IC(mutant, resident, pi_mut, pi_res, rho_mut, rho_res, eta, std::pow(eta, prm.M));
@@ -272,7 +274,8 @@ class GroupedEvoGame {
     double rho_mut = IntraGroupFixationProb(mutant, resident);
     double rho_res = IntraGroupFixationProb(resident, mutant);
     // \eta = Q_i^{-}/Q_i^{+} = \rho_B / \rho_A * \exp[ \sigma_out (\pi_B - \pi_A) ]
-    double eta = rho_res / rho_mut * std::exp(prm.sigma_out * (pi_res_res - pi_mut_mut) );
+    double sigma_out = prm.sigma_out_b / (prm.benefit-1.0);
+    double eta = rho_res / rho_mut * std::exp(sigma_out * (pi_res_res - pi_mut_mut) );
 
     if (rho_mut == 0.0) {
       return std::numeric_limits<double>::infinity();
@@ -294,7 +297,7 @@ class GroupedEvoGame {
     }
 
     // t_1 = phi_1 M(M-1){ 1 + exp[sigma_out(pi_B - pi_A)]} / rho_A \sum_{k=1}^{M-1}\sum_{l=1}^{k} eta^(k-l)/l(M-l)
-    double t = phi_1 * prm.M * (prm.M - 1) * (1.0 + std::exp(prm.sigma_out * (pi_res_res - pi_mut_mut))) / rho_mut;
+    double t = phi_1 * prm.M * (prm.M - 1) * (1.0 + std::exp(sigma_out * (pi_res_res - pi_mut_mut))) / rho_mut;
     double sum = 0.0;
     for (int k = 1; k < prm.M; k++) {
       for (int l = 1; l <= k; l++) {
@@ -310,7 +313,8 @@ class GroupedEvoGame {
     double rho_mut = IntraGroupFixationProb(mutant, resident);
     double rho_res = IntraGroupFixationProb(resident, mutant);
     // \eta = Q_i^{-}/Q_i^{+} = \rho_B / \rho_A * \exp[ \sigma_out (\pi_B - \pi_A) ]
-    double eta = rho_res / rho_mut * std::exp(prm.sigma_out * (pi_res_res - pi_mut_mut) );
+    double sigma_out = prm.sigma_out_b / (prm.benefit-1.0);
+    double eta = rho_res / rho_mut * std::exp(sigma_out * (pi_res_res - pi_mut_mut) );
 
     if (rho_mut == 0.0) {
       return std::numeric_limits<double>::infinity();
@@ -334,7 +338,7 @@ class GroupedEvoGame {
     }
 
     // t_1^A = M(M-1){ 1 + exp[sigma_out(pi_B - pi_A)]} / rho_A \sum_{k=1}^{M-1}\sum_{l=1}^{k} eta^(k-l)phi_l/l(M-l)
-    double t = prm.M * (prm.M-1) * (1.0 + std::exp(prm.sigma_out * (pi_res_res - pi_mut_mut))) / rho_mut;
+    double t = prm.M * (prm.M-1) * (1.0 + std::exp(sigma_out * (pi_res_res - pi_mut_mut))) / rho_mut;
     double sum = 0.0;
     for (int k = 1; k < prm.M; k++) {
       for (int l = 1; l <= k; l++) {

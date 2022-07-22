@@ -24,8 +24,8 @@ GroupedEvoGame::Parameters DefaultTestParameters() {
   prm.N = 2;
   prm.benefit = 3;
   prm.error_rate = 1.0e-3;
-  prm.sigma_in = 10.0;
-  prm.sigma_out = 10.0;
+  prm.sigma_in_b = 20.0;
+  prm.sigma_out_b = 20.0;
   prm.strategy_space = {3,3};
   prm.initial_condition = "random";
   prm.weighted_sampling = 1;
@@ -68,8 +68,8 @@ void test_FixationProb() {
   auto prm = DefaultTestParameters();
   prm.N = 2;
   prm.M = 30;
-  prm.sigma_in = 10.0;
-  prm.sigma_out = 10.0;
+  prm.sigma_in_b = 20.0;
+  prm.sigma_out_b = 20.0;
   GroupedEvoGame eco(prm);
 
   GroupedEvoGame::Species allc(StrategyM3::ALLC().ID(), prm.error_rate);
@@ -90,8 +90,8 @@ void test_IntraFixationProb() {
   auto prm = DefaultTestParameters();
   prm.N = 2;
   prm.M = 30;
-  prm.sigma_in = 10.0;
-  prm.sigma_out = 10.0;
+  prm.sigma_in_b = 20.0;
+  prm.sigma_out_b = 20.0;
   GroupedEvoGame eco(prm);
 
   GroupedEvoGame::Species allc(StrategyM3::ALLC().ID(), prm.error_rate);
