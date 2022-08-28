@@ -40,16 +40,4 @@ target_link_libraries(test_GroupedEvoGameLowMutation PRIVATE Eigen3::Eigen lapac
 add_executable(main_multi_evo_low_mut main_multi_evo_low_mut.cpp ${SOURCE_FILES})
 target_link_libraries(main_multi_evo_low_mut PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
 
-add_executable(main_mem1_finite_mut main_mem1_finite_mut.cpp ${SOURCE_FILES})
-target_link_libraries(main_mem1_finite_mut PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
-
-add_executable(main_mem1_finite_mut_analysis main_mem1_finite_mut_analysis.cpp ${SOURCE_FILES})
-target_link_libraries(main_mem1_finite_mut_analysis PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
-
-add_executable(main_mem1_low_mut main_mem1_low_mut.cpp ${SOURCE_FILES})
-target_link_libraries(main_mem1_low_mut PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
-
-add_executable(main_mem1_low_mut_MC main_mem1_low_mut_MC.cpp ${SOURCE_FILES})
-target_link_libraries(main_mem1_low_mut_MC PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
-
 add_executable(find_shorter_memory_FR find_shorter_memory_FR.cpp)
