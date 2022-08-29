@@ -192,7 +192,7 @@ class GroupedEvoGame {
       throw std::runtime_error("unknown sampling type: Use 0(uniform) or 1(weighted)");
     }
     ConstructSpeciesCache();
-    FillMutantQueue(10000);
+    FillMutantQueue(100000);
   };
   Parameters prm;
   StrategySpace space;
@@ -411,6 +411,7 @@ class GroupedEvoGame {
     std::cerr << "filling mutant queue" << mutant_queue._index << std::endl;
     mutant_queue._mutants.resize(queue_size);
     mutant_queue._index = 0;
+    #pragma omp parallel for
     for (size_t i = 0; i < queue_size; i++) {
       uint64_t mut_id = (prm.excluding_strategies.empty()) ? SampleStrategySpace() : SampleStrategySpaceWithExclusion();
       auto it = species_cache.find(mut_id);
