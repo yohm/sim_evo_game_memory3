@@ -68,6 +68,17 @@ class GroupedEvoGame {
       automaton_sizes[0] = strategy.MinimizeDFA(false).to_map().size();
       automaton_sizes[1] = strategy.MinimizeDFA(true).to_map().size();
     };
+    Species() { // default constructor
+      strategy_id = 0;
+      cooperation_level = 0.0;
+      is_efficient = false;
+      is_defensible = false;
+      is_wsls_like = false;
+      name = "";
+      mem_lengths = {0,0};
+      automaton_sizes = {0,0};
+    };
+
     uint64_t strategy_id;
     double cooperation_level;
     bool is_efficient;
@@ -181,6 +192,7 @@ class GroupedEvoGame {
       throw std::runtime_error("unknown sampling type: Use 0(uniform) or 1(weighted)");
     }
     ConstructSpeciesCache();
+    FillMutantQueue(10000);
   };
   Parameters prm;
   StrategySpace space;
@@ -192,6 +204,11 @@ class GroupedEvoGame {
   prob_cache_t prob_cache;
   using species_cache_t = std::map<uint64_t,Species>;
   species_cache_t species_cache;
+  struct MutantQueue {
+    size_t _index = 0;
+    std::vector<Species> _mutants;
+  };
+  MutantQueue mutant_queue;
   std::map<uint64_t,size_t> alld_killer_counter[2];
 
   double IntraGroupFixationProb(const Species& mutant, const Species& resident) const {
@@ -390,6 +407,26 @@ class GroupedEvoGame {
     return candidate;
   }
 
+  void FillMutantQueue(size_t queue_size) {
+    std::cerr << "filling mutant queue" << mutant_queue._index << std::endl;
+    mutant_queue._mutants.resize(queue_size);
+    mutant_queue._index = 0;
+    for (size_t i = 0; i < queue_size; i++) {
+      uint64_t mut_id = (prm.excluding_strategies.empty()) ? SampleStrategySpace() : SampleStrategySpaceWithExclusion();
+      auto it = species_cache.find(mut_id);
+      Species mutant = (it == species_cache.end()) ? Species(mut_id, prm.error_rate) : it->second;
+      mutant_queue._mutants[i] = mutant;
+    }
+    std::cerr << "filled mutant queue" << std::endl;
+  }
+
+  Species PopFromMutantQueue() {
+    if (mutant_queue._index >= mutant_queue._mutants.size()) {
+      FillMutantQueue(mutant_queue._mutants.size());
+    }
+    return mutant_queue._mutants[mutant_queue._index++];
+  }
+
   void ConstructSpeciesCache() {
     const size_t mem_max = 3;
     for (size_t m1 = 0; m1 <= mem_max; m1++) {
@@ -417,9 +454,7 @@ class GroupedEvoGame {
     assert(th == 0);
     const Species& resident = species[res_index];
     if (uni(a_rnd[th]) < prm.p_nu) {
-      uint64_t mut_id = (prm.excluding_strategies.empty()) ? SampleStrategySpace() : SampleStrategySpaceWithExclusion();
-      auto it = species_cache.find(mut_id);
-      Species mutant = (it == species_cache.end()) ? Species(mut_id, prm.error_rate) : it->second;
+      Species mutant = PopFromMutantQueue();
       double f = IntraGroupFixationProb(mutant, resident);
       if (uni(a_rnd[th]) < f) {
         CountAllDKiller(resident.strategy_id, mutant.strategy_id, false);
