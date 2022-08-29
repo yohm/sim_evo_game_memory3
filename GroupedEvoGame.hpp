@@ -180,6 +180,7 @@ class GroupedEvoGame {
     if (prm.weighted_sampling < 0 || prm.weighted_sampling > 1) {
       throw std::runtime_error("unknown sampling type: Use 0(uniform) or 1(weighted)");
     }
+    ConstructSpeciesCache();
   };
   Parameters prm;
   StrategySpace space;
@@ -389,6 +390,20 @@ class GroupedEvoGame {
     return candidate;
   }
 
+  void ConstructSpeciesCache() {
+    const size_t mem_max = 3;
+    for (size_t m1 = 0; m1 <= mem_max; m1++) {
+      for (size_t m2 = 0; m1 + m2 <= mem_max; m2++) {
+        StrategySpace ss(m1, m2);
+        for (uint64_t lid = 0; lid <= ss.Max(); lid++) {
+          uint64_t gid = ss.ToGlobalID(lid);
+          species_cache.insert({gid, Species{gid, prm.error_rate}});
+        }
+      }
+    }
+    std::cerr << "species_cache.size(): " << species_cache.size() << std::endl;
+  }
+
   void Update() {
     for (int t = 0; t < prm.M; t++) {
       std::uniform_int_distribution<size_t> d0(0, prm.M-1);
@@ -405,9 +420,6 @@ class GroupedEvoGame {
       uint64_t mut_id = (prm.excluding_strategies.empty()) ? SampleStrategySpace() : SampleStrategySpaceWithExclusion();
       auto it = species_cache.find(mut_id);
       Species mutant = (it == species_cache.end()) ? Species(mut_id, prm.error_rate) : it->second;
-      if (it == species_cache.end() && mutant.mem_lengths[0]+mutant.mem_lengths[1] <= 4) {
-        species_cache.insert( std::make_pair(mut_id, mutant));
-      }
       double f = IntraGroupFixationProb(mutant, resident);
       if (uni(a_rnd[th]) < f) {
         CountAllDKiller(resident.strategy_id, mutant.strategy_id, false);
