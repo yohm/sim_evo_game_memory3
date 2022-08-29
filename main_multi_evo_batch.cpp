@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
 
   std::function<void(int64_t, const json&, const json&, caravan::Queue&)> on_result_receive =
     [](int64_t task_id, const json& input, const json& output, caravan::Queue& q) {
-    std::cout << task_id << std::endl << input << std::endl << output << std::endl;
+    std::cout << task_id << "\n" << input << "\n" << output << "\n";
   };
 
   std::function<json(const json&)> do_task = [](const json& input) {
