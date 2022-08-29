@@ -39,7 +39,6 @@ class GroupedEvoGame {
     double p_nu;  // probability of introducing a mutant
     std::array<size_t,2> strategy_space;
     int weighted_sampling;  // 1: weighted sampling, 0: uniform sampling
-    int parallel_update;    // 1: parallel update, 0: serial update
     double alld_mutant_prob = 0.0;  // probability of introducing a mutant of ALLD
     std::set<uint64_t> excluding_strategies;
     std::string initial_condition; // "random", "TFT", "WSLS", "TFT-ATFT", "CAPRI"
@@ -47,7 +46,7 @@ class GroupedEvoGame {
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Parameters, T_max, T_print, T_init,
                                    M, N, benefit, error_rate, sigma_in_b, sigma_out_b, p_nu,
-                                   strategy_space, weighted_sampling, parallel_update,
+                                   strategy_space, weighted_sampling,
                                    excluding_strategies, initial_condition, _seed);
   };
 
@@ -151,8 +150,6 @@ class GroupedEvoGame {
       std::seed_seq s = {static_cast<uint32_t>(prm._seed), t};
       a_rnd.emplace_back(s);
     }
-    prob_caches.resize(num_threads);
-    species_caches.resize(num_threads);
     mutant_list = m_list;
 
     species.reserve(prm.M);
@@ -183,9 +180,6 @@ class GroupedEvoGame {
     if (prm.weighted_sampling < 0 || prm.weighted_sampling > 1) {
       throw std::runtime_error("unknown sampling type: Use 0(uniform) or 1(weighted)");
     }
-    if (prm.parallel_update < 0 || prm.parallel_update > 1) {
-      throw std::runtime_error("unknown update scheme: Use 0(serial update) or 1(parallel update)");
-    }
   };
   Parameters prm;
   StrategySpace space;
@@ -194,9 +188,9 @@ class GroupedEvoGame {
   std::vector<std::mt19937_64> a_rnd;
   std::uniform_real_distribution<double> uni;
   using prob_cache_t = std::map<std::pair<uint64_t,uint64_t>,double>;
-  std::vector<prob_cache_t> prob_caches;
+  prob_cache_t prob_cache;
   using species_cache_t = std::map<uint64_t,Species>;
-  std::vector<species_cache_t> species_caches;
+  species_cache_t species_cache;
   std::map<uint64_t,size_t> alld_killer_counter[2];
 
   double IntraGroupFixationProb(const Species& mutant, const Species& resident) const {
@@ -396,40 +390,23 @@ class GroupedEvoGame {
   }
 
   void Update() {
-    if (prm.parallel_update == 1) {
-      UpdateParallel();
-    }
-    else {
-      UpdateSerial();
-    }
-  }
-
-  void UpdateSerial() {
     for (int t = 0; t < prm.M; t++) {
       std::uniform_int_distribution<size_t> d0(0, prm.M-1);
       size_t res_index = d0(a_rnd[0]);
-      UpdateSpecies(res_index, species, 0);
+      UpdateSpecies(res_index);
     }
   }
 
-  void UpdateParallel() {
-    const std::vector<Species> prev_species = species;
-    #pragma omp parallel for
-    for (size_t i = 0; i < prm.M; i++) {
-      const size_t res_index = i;
-      int th = omp_get_thread_num();
-      UpdateSpecies(res_index, prev_species, th);
-    }
-  }
-
-  void UpdateSpecies(size_t res_index, const std::vector<Species>& prev_species, int th) {
-    const Species& resident = prev_species[res_index];
+  void UpdateSpecies(size_t res_index) {
+    const int th = omp_get_thread_num();
+    assert(th == 0);
+    const Species& resident = species[res_index];
     if (uni(a_rnd[th]) < prm.p_nu) {
       uint64_t mut_id = (prm.excluding_strategies.empty()) ? SampleStrategySpace() : SampleStrategySpaceWithExclusion();
-      auto it = species_caches[th].find(mut_id);
-      Species mutant = (it == species_caches[th].end()) ? Species(mut_id, prm.error_rate) : it->second;
-      if (it == species_caches[th].end() && mutant.mem_lengths[0]+mutant.mem_lengths[1] <= 4) {
-        species_caches[th].insert( std::make_pair(mut_id, mutant));
+      auto it = species_cache.find(mut_id);
+      Species mutant = (it == species_cache.end()) ? Species(mut_id, prm.error_rate) : it->second;
+      if (it == species_cache.end() && mutant.mem_lengths[0]+mutant.mem_lengths[1] <= 4) {
+        species_cache.insert( std::make_pair(mut_id, mutant));
       }
       double f = IntraGroupFixationProb(mutant, resident);
       if (uni(a_rnd[th]) < f) {
@@ -440,14 +417,14 @@ class GroupedEvoGame {
     else {
       std::uniform_int_distribution<size_t> d1(1, prm.M-1);
       size_t mig_index = static_cast<size_t>(res_index + d1(a_rnd[th])) % prm.M;
-      const Species& immigrant = prev_species[mig_index];
-      auto it = prob_caches[th].find({immigrant.strategy_id, resident.strategy_id});
+      const Species& immigrant = species[mig_index];
+      auto it = prob_cache.find({immigrant.strategy_id, resident.strategy_id});
       double prob;
-      if (it == prob_caches[th].end()) {
+      if (it == prob_cache.end()) {
         double p = InterGroupImitationProb(immigrant, resident);
         double f = IntraGroupFixationProb(immigrant, resident);
         prob = p*f;
-        prob_caches[th].insert({ {immigrant.strategy_id, resident.strategy_id}, prob});
+        prob_cache.insert({ {immigrant.strategy_id, resident.strategy_id}, prob});
       }
       else {
         prob = it->second;
@@ -459,16 +436,15 @@ class GroupedEvoGame {
     }
 
     constexpr size_t CACHE_SIZE_MAX = 1000;
-    if (prob_caches[th].size() > CACHE_SIZE_MAX) {
+    if (prob_cache.size() > CACHE_SIZE_MAX) {
       std::cerr << "deleting cache at " << th << std::endl;
-      ClearCache(prev_species);
-      std::cerr << "  cache size: " << prob_caches[th].size() << std::endl;
+      ClearCache();
+      std::cerr << "  cache size: " << prob_cache.size() << std::endl;
     }
   }
 
   void CountAllDKiller(uint64_t old_str_id, uint64_t new_str_id, bool is_migration) {
     constexpr uint64_t alld_id = 18446744073709551615ULL;
-    if (prm.parallel_update) return;  // don't count under parallel update
     if (old_str_id == alld_id && new_str_id != alld_id) {
       // std::cerr << old_str_id << ' ' << new_str_id << std::endl;
       auto& counter = (is_migration) ? alld_killer_counter[0] : alld_killer_counter[1];
@@ -482,18 +458,17 @@ class GroupedEvoGame {
     }
   }
 
-  void ClearCache(const std::vector<Species>& prev_species) {
+  void ClearCache() {
     std::set<uint64_t> existing;
-    for (const auto& s: prev_species) {
+    for (const auto& s: species) {
       existing.insert(s.strategy_id);
     }
 
-    int th = omp_get_thread_num();
-    for (auto it = prob_caches[th].begin(); it != prob_caches[th].end(); ) {
+    for (auto it = prob_cache.begin(); it != prob_cache.end(); ) {
       uint64_t sid1 = it->first.first, sid2 = it->first.second;
       if (existing.find(sid1) == existing.end() || existing.find(sid2) == existing.end()) {
         // if strategy does not exist in the current species
-        it = prob_caches[th].erase(it);
+        it = prob_cache.erase(it);
       }
       else {
         it++;
