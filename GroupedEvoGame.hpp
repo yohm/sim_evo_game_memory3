@@ -184,7 +184,7 @@ class GroupedEvoGame {
       throw std::runtime_error("unknown sampling type: Use 0(uniform) or 1(weighted)");
     }
     if (prm.parallel_update < 0 || prm.parallel_update > 1) {
-      throw std::runtime_error("unknown update scheme: Use 0(serial update) or 1(paralell update)");
+      throw std::runtime_error("unknown update scheme: Use 0(serial update) or 1(parallel update)");
     }
   };
   Parameters prm;
