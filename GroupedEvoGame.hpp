@@ -408,7 +408,7 @@ class GroupedEvoGame {
   }
 
   void FillMutantQueue(size_t queue_size) {
-    std::cerr << "filling mutant queue" << mutant_queue._index << std::endl;
+    // std::cerr << "filling mutant queue" << mutant_queue._index << std::endl;
     mutant_queue._mutants.resize(queue_size);
     mutant_queue._index = 0;
     #pragma omp parallel for
@@ -418,7 +418,7 @@ class GroupedEvoGame {
       Species mutant = (it == species_cache.end()) ? Species(mut_id, prm.error_rate) : it->second;
       mutant_queue._mutants[i] = mutant;
     }
-    std::cerr << "filled mutant queue" << std::endl;
+    // std::cerr << "filled mutant queue" << std::endl;
   }
 
   Species PopFromMutantQueue() {
@@ -439,7 +439,6 @@ class GroupedEvoGame {
         }
       }
     }
-    std::cerr << "species_cache.size(): " << species_cache.size() << std::endl;
   }
 
   void Update() {
@@ -485,9 +484,9 @@ class GroupedEvoGame {
 
     constexpr size_t CACHE_SIZE_MAX = 1000;
     if (prob_cache.size() > CACHE_SIZE_MAX) {
-      std::cerr << "deleting cache at " << th << std::endl;
+      // std::cerr << "deleting cache at " << th << std::endl;
       ClearCache();
-      std::cerr << "  cache size: " << prob_cache.size() << std::endl;
+      // std::cerr << "  cache size: " << prob_cache.size() << std::endl;
     }
   }
 

@@ -82,8 +82,9 @@ json RunSimulation(const GroupedEvoGame::Parameters& prm) {
 void ExpandInputsAndEnqueue(const json& inputs, caravan::Queue& q, std::mt19937_64& rnd) {
   for (const auto& kv: inputs.items()) {
     if (
-      (kv.key() != "strategy_space" && kv.value().is_array()) ||
-      (kv.key() == "strategy_space" && kv.value().at(0).is_array())
+      (kv.key() != "strategy_space" && kv.key() != "excluding_strategies" && kv.value().is_array()) ||
+      (kv.key() == "strategy_space" && kv.value().at(0).is_array()) ||
+      (kv.key() == "excluding_strategies" && kv.value().size() > 0 && kv.value().at(0).is_array())
     ) {
       for (const auto& x: kv.value()) {
         json j = inputs;
@@ -126,6 +127,7 @@ int main(int argc, char *argv[]) {
   }
 
   json inputs;
+  std::ofstream fout;
   if (my_rank == 0) {
     std::ifstream fin(argv[1]);
     if (!fin) {
@@ -133,6 +135,9 @@ int main(int argc, char *argv[]) {
       MPI_Abort(MPI_COMM_WORLD, 1);
     }
     fin >> inputs;
+
+    fout.open("results.json");
+    fout << "[" << "\n";
   }
 
   std::function<void(caravan::Queue&)> on_init = [&inputs](caravan::Queue& q) {
@@ -141,9 +146,14 @@ int main(int argc, char *argv[]) {
     ExpandInputsAndEnqueue(inputs, q, rnd);
   };
 
+
   std::function<void(int64_t, const json&, const json&, caravan::Queue&)> on_result_receive =
-    [](int64_t task_id, const json& input, const json& output, caravan::Queue& q) {
-    std::cout << task_id << "\n" << input << "\n" << output << "\n";
+    [&fout](int64_t task_id, const json& input, const json& output, caravan::Queue& q) {
+    json j;
+    j["task_id"] = task_id;
+    j["input"] = input;
+    j["output"] = output;
+    fout << j.dump(2) << "," << "\n";
   };
 
   std::function<json(const json&)> do_task = [](const json& input) {
@@ -152,6 +162,11 @@ int main(int argc, char *argv[]) {
   };
 
   caravan::Start(on_init, on_result_receive, do_task, MPI_COMM_WORLD);
+
+  if (my_rank == 0) {
+    fout.seekp(-2, std::ios_base::cur);  // overwrite the last two characters ',\n'
+    fout << "\n]" << std::endl;
+  }
 
   MPI_Finalize();
 
