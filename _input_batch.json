@@ -1,17 +1,18 @@
 {
-  "T_max": 1000000,
-  "T_print":1000,
-  "T_init": 100000,
+  "T_max": 1000,
+  "T_print":100,
+  "T_init": 100,
   "M": 1000,
   "N": 2,
   "benefit": [1.5,3.0,6.0],
   "error_rate": 0.000001,
   "sigma_in_b": 30.0,
   "sigma_out_b": 3.0,
-  "p_mu": [0.1, 0.04,0.02,0.01, 0.004,0.002,0.001, 0.0004,0.0002,0.0001, 0.00004,0.00002,0.00001],
+  "p_nu": [0.02,0.01],
   "strategy_space": [3,3],
   "weighted_sampling": 1,
   "initial_condition": "random",
-  "number_of_runs": 100,
+  "excluding_strategies": [],
+  "number_of_runs": 2,
   "_seed": 1234567890
 }
