@@ -84,8 +84,7 @@ int main(int argc, char *argv[]) {
     nlohmann::json input;
     fin >> input;
     // populate dummy data for unused parameters
-    input["p_nu"] = -1.0;
-    input["weighted_sampling"] = 1;
+    input["p_nu"] = 0.0;
     input["parallel_update"] = 0;
     prm = input.get<GroupedEvoGame::Parameters>();
   }
@@ -111,7 +110,7 @@ int main(int argc, char *argv[]) {
   std::uniform_real_distribution<double> uni;
 
   for (size_t t = 0; t < prm.T_max; t++) {
-    uint64_t mut_id = eco.SampleStrategySpace();
+    uint64_t mut_id = eco.SampleStrategySpaceWithExclusion();
     GroupedEvoGame::Species mut(mut_id, prm.error_rate);
     double prob = eco.FixationProbLowMutation(mut, current_species);
     if (uni(eco.a_rnd[0]) < prob) {
@@ -119,17 +118,14 @@ int main(int argc, char *argv[]) {
     }
 
     Measure(current_species, counter_interval);
+    if (t > prm.T_init) {
+      Measure(current_species, counter_all);
+    }
     if (is_measuring_lifetime) {
       if (current_species.strategy_id != initial_species_id) {
         lifetime = t;
         is_measuring_lifetime = false;
       }
-      else {
-        lifetime = t+1;
-      }
-    }
-    if (t > prm.T_init) {
-      Measure(current_species, counter_all);
     }
     if (t % prm.T_print == prm.T_print - 1) {
       double c_inv = 1.0 / static_cast<double>(counter_interval.count);
