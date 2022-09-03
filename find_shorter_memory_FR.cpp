@@ -6,6 +6,17 @@
 #include "StrategySpace.hpp"
 
 
+uint64_t NumStrategies(const std::string& line) {
+  if (line.size() != 64) {
+    throw std::runtime_error("invalid format");
+  }
+  uint64_t ans = 1ull;
+  for (int i = 0; i < 64; i++) {
+    if (line[i] == '*') ans = ans << 1ull;
+  }
+  return ans;
+}
+
 bool ContainsShorterStrategies(const std::string& line) {
   if (line.size() != 64) {
     throw std::runtime_error("invalid format");
@@ -72,6 +83,7 @@ int main(int argc, char* argv[]) {
   }
 
   std::vector< std::vector<size_t> > histo(4, std::vector<size_t>(4, 0));
+  uint64_t total_num_strategies = 0ull;
 
   for (int i = 1; i < argc; i++) {
     std::ifstream fin(argv[i]);
@@ -85,6 +97,7 @@ int main(int argc, char* argv[]) {
     std::string line;
     long count = 0;
     while (fin >> line) {
+      total_num_strategies += NumStrategies(line);
       if (count % 10'000'000 == 0) { std::cerr << "line :" << count << std::endl; }
       if (ContainsShorterStrategies(line) ) {
         const auto expanded = ExpandStrategies(line);
@@ -103,9 +116,12 @@ int main(int argc, char* argv[]) {
 
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
+      if (i == 3 && j == 3) { continue; }
       std::cerr << i << ' ' << j << ' ' << histo[i][j] << std::endl;
+      total_num_strategies -= histo[i][j];
     }
   }
+  std::cerr << 3 << ' ' << 3 << ' ' << total_num_strategies << std::endl;
 
   return 0;
 
