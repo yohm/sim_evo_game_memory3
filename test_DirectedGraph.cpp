@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cassert>
 #include "DirectedGraph.hpp"
 
 void PrintComponents(const components_t& components) {
