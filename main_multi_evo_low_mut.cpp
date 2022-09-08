@@ -8,7 +8,7 @@
 #include <chrono>
 #include <regex>
 #include "GroupedEvoGame.hpp"
-#include "icecream-cpp/icecream.hpp"
+#include "icecream.hpp"
 
 
 std::string prev_key;
@@ -67,9 +67,6 @@ void Measure(const GroupedEvoGame::Species& current_species, Counter& counter) {
 
 
 int main(int argc, char *argv[]) {
-  #if defined(NDEBUG)
-  icecream::ic.disable();
-  #endif
 
   Eigen::initParallel();
   if( argc != 2 ) {

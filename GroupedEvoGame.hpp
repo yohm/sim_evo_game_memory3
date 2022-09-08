@@ -19,7 +19,7 @@
 #include <Eigen/Dense>
 #include <nlohmann/json.hpp>
 #include <omp.h>
-#include "icecream-cpp/icecream.hpp"
+#include "icecream.hpp"
 #include "StrategyM3.hpp"
 #include "StrategySpace.hpp"
 
@@ -263,7 +263,6 @@ class GroupedEvoGame {
     double sigma_out = prm.sigma_out_b / (prm.benefit-1.0);
     double eta = rho_res / rho_mut * std::exp(sigma_out * (pi_res - pi_mut) );
     if (rho_mut == 0.0 && rho_res == 0.0) {
-      icecream::ic.enable();
       IC(mutant, resident, pi_mut, pi_res, rho_mut, rho_res, eta, std::pow(eta, prm.M));
       throw std::runtime_error("cannot calculate fixation prob");
     }

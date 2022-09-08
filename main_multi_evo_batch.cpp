@@ -10,7 +10,7 @@
 #include "omp.h"
 #include "mpi.h"
 #include "GroupedEvoGame.hpp"
-#include "icecream-cpp/icecream.hpp"
+#include "icecream.hpp"
 #include "caravan-lib/caravan.hpp"
 
 
