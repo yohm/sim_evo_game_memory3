@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.7)
 project(cpp)
 
+
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_OSX_DEPLOYMENT_TARGET 11.6)
+
+include(CMakeLists.local OPTIONAL)
 
 #set(CMAKE_VERBOSE_MAKEFILE 1)
 
