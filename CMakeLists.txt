@@ -34,6 +34,9 @@ add_executable(main_multi_evo_batch main_multi_evo_batch.cpp ${SOURCE_FILES} Gro
 target_include_directories(main_multi_evo_batch PRIVATE ${PROJECT_SOURCE_DIR}/caravan-lib)
 target_link_libraries(main_multi_evo_batch PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX MPI::MPI_CXX)
 
+add_executable(main_calc_fractions main_calc_fractions.cpp ${SOURCE_FILES})
+target_link_libraries(main_calc_fractions PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
+
 add_executable(test_GroupedEvoGameLowMutation test_GroupedEvoGameLowMutation.cpp ${SOURCE_FILES})
 target_link_libraries(test_GroupedEvoGameLowMutation PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
 
