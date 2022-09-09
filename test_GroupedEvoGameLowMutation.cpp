@@ -149,7 +149,7 @@ StrategyM3 ParseStrategy(const std::string& str) {
       throw std::runtime_error("unknown strategy");
     }
   }
-  return StrategyM3{0ull};
+  return StrategyM3{uint64_t{0ull}};
 }
 
 void PrintFixationProbs(const StrategyM3& mutant, const StrategyM3& resident) {

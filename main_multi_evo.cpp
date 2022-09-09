@@ -7,8 +7,8 @@
 #include <array>
 #include <chrono>
 #include <regex>
+#include "icecream.hpp"
 #include "GroupedEvoGame.hpp"
-#include "icecream-cpp/icecream.hpp"
 
 
 std::string prev_key;
@@ -25,10 +25,9 @@ void MeasureElapsed(const std::string& key) {
 
 
 int main(int argc, char *argv[]) {
-  #if defined(NDEBUG)
-  icecream::ic.disable();
-  #endif
+  #if not defined(NDEBUG)
   icecream::ic.prefix("[", omp_get_thread_num, "/" , omp_get_max_threads, "]: ");
+  #endif
 
   Eigen::initParallel();
   if( argc != 2 && argc != 3 ) {
