@@ -82,7 +82,6 @@ int main(int argc, char *argv[]) {
     fin >> input;
     // populate dummy data for unused parameters
     input["p_nu"] = 0.0;
-    input["parallel_update"] = 0;
     prm = input.get<GroupedEvoGame::Parameters>();
   }
 
@@ -110,7 +109,7 @@ int main(int argc, char *argv[]) {
     uint64_t mut_id = eco.SampleStrategySpaceWithExclusion();
     GroupedEvoGame::Species mut(mut_id, prm.error_rate);
     double prob = eco.FixationProbLowMutation(mut, current_species);
-    if (uni(eco.a_rnd[0]) < prob) {
+    if (uni(eco.rnd) < prob) {
       current_species = mut;
     }
 

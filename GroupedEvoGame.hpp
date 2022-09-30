@@ -18,7 +18,6 @@
 #include <regex>
 #include <Eigen/Dense>
 #include <nlohmann/json.hpp>
-#include <omp.h>
 #include "icecream.hpp"
 #include "StrategyM3.hpp"
 #include "StrategySpace.hpp"
@@ -155,12 +154,8 @@ class GroupedEvoGame {
   };
 
   explicit GroupedEvoGame(Parameters _prm, const MutantList& m_list = MutantList()) :
-    prm(std::move(_prm)), space(prm.strategy_space[0], prm.strategy_space[1]) {
-    const int num_threads = omp_get_max_threads();
-    for (uint32_t t = 0; t < num_threads; t++) {
-      std::seed_seq s = {static_cast<uint32_t>(prm._seed), t};
-      a_rnd.emplace_back(s);
-    }
+    prm(std::move(_prm)), space(prm.strategy_space[0], prm.strategy_space[1]), rnd(prm._seed) {
+
     mutant_list = m_list;
 
     species.reserve(prm.M);
@@ -192,13 +187,12 @@ class GroupedEvoGame {
       throw std::runtime_error("unknown sampling type: Use 0(uniform) or 1(weighted)");
     }
     ConstructSpeciesCache();
-    FillMutantQueue(100000);
   };
   Parameters prm;
   StrategySpace space;
   MutantList mutant_list;
   std::vector<Species> species;
-  std::vector<std::mt19937_64> a_rnd;
+  std::mt19937_64 rnd;
   std::uniform_real_distribution<double> uni;
   using prob_cache_t = std::map<std::pair<uint64_t,uint64_t>,double>;
   prob_cache_t prob_cache;
@@ -360,30 +354,27 @@ class GroupedEvoGame {
   }
 
   uint64_t UniformSampleStrategySpace() {
-    const int th = omp_get_thread_num();
     std::uniform_int_distribution<uint64_t> sample(0ull, space.Max());
-    return space.ToGlobalID( sample(a_rnd[th]));
+    return space.ToGlobalID( sample(rnd));
   }
 
   uint64_t WeightedSampleStrategySpace() {
-    const int th = omp_get_thread_num();
     size_t num_spaces = (space.mem[0]+1) * (space.mem[1]+1);
-    auto mi = static_cast<size_t>( uni(a_rnd[th]) * (double)num_spaces );
+    auto mi = static_cast<size_t>( uni(rnd) * (double)num_spaces );
     size_t m1 = mi % (space.mem[0]+1), m2 = mi / (space.mem[0]+1);
     StrategySpace ss(m1, m2);
     std::uniform_int_distribution<uint64_t> sample(0ull, ss.Max());
-    uint64_t gid = ss.ToGlobalID( sample(a_rnd[th]));
+    uint64_t gid = ss.ToGlobalID( sample(rnd));
     const StrategySpace::mem_t target({m1, m2});
     while (StrategySpace::MemLengths(gid) != target) {
-      gid = ss.ToGlobalID( sample(a_rnd[th]));
+      gid = ss.ToGlobalID( sample(rnd));
     }
     return gid;
   }
 
   uint64_t SampleStrategySpace() {
     if (prm.alld_mutant_prob > 0.0) {
-      const int th = omp_get_thread_num();
-      if (uni(a_rnd[th]) < prm.alld_mutant_prob) {
+      if (uni(rnd) < prm.alld_mutant_prob) {
         return StrategyM3::ALLD().ID();
       }
     }
@@ -391,8 +382,7 @@ class GroupedEvoGame {
       return (prm.weighted_sampling==1) ? WeightedSampleStrategySpace() : UniformSampleStrategySpace();
     }
     else {
-      const int th = omp_get_thread_num();
-      double r = uni(a_rnd[th]);
+      double r = uni(rnd);
       return mutant_list.Sample(r);
     }
   }
@@ -406,25 +396,11 @@ class GroupedEvoGame {
     return candidate;
   }
 
-  void FillMutantQueue(size_t queue_size) {
-    // std::cerr << "filling mutant queue" << mutant_queue._index << std::endl;
-    mutant_queue._mutants.resize(queue_size);
-    mutant_queue._index = 0;
-    #pragma omp parallel for
-    for (size_t i = 0; i < queue_size; i++) {
-      uint64_t mut_id = (prm.excluding_strategies.empty()) ? SampleStrategySpace() : SampleStrategySpaceWithExclusion();
-      auto it = species_cache.find(mut_id);
-      Species mutant = (it == species_cache.end()) ? Species(mut_id, prm.error_rate) : it->second;
-      mutant_queue._mutants[i] = mutant;
-    }
-    // std::cerr << "filled mutant queue" << std::endl;
-  }
-
-  Species PopFromMutantQueue() {
-    if (mutant_queue._index >= mutant_queue._mutants.size()) {
-      FillMutantQueue(mutant_queue._mutants.size());
-    }
-    return mutant_queue._mutants[mutant_queue._index++];
+  Species MakeMutant() {
+    uint64_t mut_id = (prm.excluding_strategies.empty()) ? SampleStrategySpace() : SampleStrategySpaceWithExclusion();
+    auto it = species_cache.find(mut_id);
+    Species mutant = (it == species_cache.end()) ? Species(mut_id, prm.error_rate) : it->second;
+    return mutant;
   }
 
   void ConstructSpeciesCache() {
@@ -443,26 +419,24 @@ class GroupedEvoGame {
   void Update() {
     for (int t = 0; t < prm.M; t++) {
       std::uniform_int_distribution<size_t> d0(0, prm.M-1);
-      size_t res_index = d0(a_rnd[0]);
+      size_t res_index = d0(rnd);
       UpdateSpecies(res_index);
     }
   }
 
   void UpdateSpecies(size_t res_index) {
-    const int th = omp_get_thread_num();
-    assert(th == 0);
     const Species& resident = species[res_index];
-    if (uni(a_rnd[th]) < prm.p_nu) {
-      Species mutant = PopFromMutantQueue();
+    if (uni(rnd) < prm.p_nu) {
+      Species mutant = MakeMutant();
       double f = IntraGroupFixationProb(mutant, resident);
-      if (uni(a_rnd[th]) < f) {
+      if (uni(rnd) < f) {
         CountAllDKiller(resident.strategy_id, mutant.strategy_id, false);
         species[res_index] = mutant;
       }
     }
     else {
       std::uniform_int_distribution<size_t> d1(1, prm.M-1);
-      size_t mig_index = static_cast<size_t>(res_index + d1(a_rnd[th])) % prm.M;
+      size_t mig_index = static_cast<size_t>(res_index + d1(rnd)) % prm.M;
       const Species& immigrant = species[mig_index];
       auto it = prob_cache.find({immigrant.strategy_id, resident.strategy_id});
       double prob;
@@ -475,7 +449,7 @@ class GroupedEvoGame {
       else {
         prob = it->second;
       }
-      if (uni(a_rnd[th]) < prob) {
+      if (uni(rnd) < prob) {
         CountAllDKiller(resident.strategy_id, immigrant.strategy_id, true);
         species[res_index] = immigrant;
       }

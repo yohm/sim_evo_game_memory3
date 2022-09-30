@@ -7,7 +7,6 @@
 #include <array>
 #include <chrono>
 #include <regex>
-#include "omp.h"
 #include "mpi.h"
 #include "GroupedEvoGame.hpp"
 #include "icecream.hpp"
@@ -111,7 +110,6 @@ int main(int argc, char *argv[]) {
   #if defined(NDEBUG)
   icecream::ic.disable();
   #endif
-  icecream::ic.prefix("[", omp_get_thread_num, "/" , omp_get_max_threads, "]: ");
 
   MPI_Init(&argc, &argv);
 
