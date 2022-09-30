@@ -40,6 +40,9 @@ target_link_libraries(main_multi_evo_batch PRIVATE Eigen3::Eigen lapacke MPI::MP
 add_executable(main_calc_fractions main_calc_fractions.cpp ${SOURCE_FILES})
 target_link_libraries(main_calc_fractions PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
 
+add_executable(main_lifetime_distribution main_lifetime_distribution.cpp ${SOURCE_FILES})
+target_link_libraries(main_lifetime_distribution PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
+
 add_executable(test_GroupedEvoGameLowMutation test_GroupedEvoGameLowMutation.cpp ${SOURCE_FILES})
 target_link_libraries(test_GroupedEvoGameLowMutation PRIVATE Eigen3::Eigen lapacke)
 
