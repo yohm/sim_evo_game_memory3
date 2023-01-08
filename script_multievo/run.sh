@@ -6,5 +6,6 @@ if [ $# -eq 1 ]; then
 else
   $script_dir/../cmake-build-release/main_multi_evo _input.json
 fi
+source env/bin/activate
 export PIPENV_PIPFILE=${script_dir}/Pipfile
 pipenv run python ${script_dir}/plot_timeseries.py
