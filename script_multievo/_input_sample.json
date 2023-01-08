@@ -1,0 +1,19 @@
+{
+  "T_max": 1000,
+  "T_print":100,
+  "T_init": 100,
+  "M": 1000,
+  "N": 2,
+  "benefit": 1.5,
+  "error_rate": 0.001,
+  "sigma_in_b": 30.0,
+  "sigma_out_b": 30.0,
+  "p_nu": 0.1,
+  "strategy_space": [3, 3],
+  "weighted_sampling": 1,
+  "_parallel_update": 1,
+  "excluding_strategies": [],
+  "_excluding_strategies": [18374874131071019690],
+  "initial_condition": "random",
+  "_seed": 21234567890
+}

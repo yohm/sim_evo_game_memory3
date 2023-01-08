@@ -1,0 +1,1 @@
+{"N":64,"M":1,"benefit":6.0,"error_rate":0.01,"sigma_in_b":30.0,"sigma_out_b":0.0,"strategy_space":[3,3],"weighted_sampling":1,"initial_condition":"random","excluding_strategies":[],"T_max":100000,"T_print":1000,"T_init":10000,"_seed":1241584268}
