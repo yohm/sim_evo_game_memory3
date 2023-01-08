@@ -2,3 +2,4 @@ cmake-build-*
 build
 result_*
 CMakeLists.local
+oacis
