@@ -3,7 +3,6 @@ project(cpp)
 
 
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_OSX_DEPLOYMENT_TARGET 11.6)
 
 include(CMakeLists.local OPTIONAL)
 
@@ -16,8 +15,9 @@ find_package(OpenMP REQUIRED)
 find_package(Eigen3 REQUIRED)
 # See https://eigen.tuxfamily.org/dox/TopicCMakeGuide.html
 
-include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/json/include ${CMAKE_SOURCE_DIR}/eigen /usr/local/opt/lapack/include)
-link_directories(/usr/local/opt/lapack/lib)
+# change these paths according to your path for homebrew
+include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/json/include /opt/homebrew/opt/lapack/include)
+link_directories(/opt/homebrew/opt/lapack/lib)
 
 add_executable(test_DirectedGraph test_DirectedGraph.cpp DirectedGraph.hpp DirectedGraph.cpp)
 
