@@ -13,10 +13,12 @@ set(SOURCE_FILES Action.cpp Action.hpp DirectedGraph.hpp DirectedGraph.cpp
 find_package(MPI)
 find_package(OpenMP REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(nlohmann_json REQUIRED)
 # See https://eigen.tuxfamily.org/dox/TopicCMakeGuide.html
 
 # change these paths according to your path for homebrew
-include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/json/include /opt/homebrew/opt/lapack/include)
+# paths must be specified to use lapacke
+include_directories(SYSTEM /opt/homebrew/opt/lapack/include)
 link_directories(/opt/homebrew/opt/lapack/lib)
 
 add_executable(test_DirectedGraph test_DirectedGraph.cpp DirectedGraph.hpp DirectedGraph.cpp)
@@ -28,14 +30,14 @@ add_executable(test_StrategySpace test_StrategySpace.cpp StrategySpace.hpp)
 target_link_libraries(test_StrategySpace PRIVATE Eigen3::Eigen lapacke)
 
 add_executable(test_GroupedEvoGame test_GroupedEvoGame.cpp GroupedEvoGame.hpp ${SOURCE_FILES})
-target_link_libraries(test_GroupedEvoGame PRIVATE Eigen3::Eigen lapacke)
+target_link_libraries(test_GroupedEvoGame PRIVATE Eigen3::Eigen lapacke nlohmann_json::nlohmann_json)
 
 add_executable(main_multi_evo main_multi_evo.cpp ${SOURCE_FILES} GroupedEvoGame.hpp)
-target_link_libraries(main_multi_evo PRIVATE Eigen3::Eigen lapacke)
+target_link_libraries(main_multi_evo PRIVATE Eigen3::Eigen lapacke nlohmann_json::nlohmann_json)
 
 add_executable(main_multi_evo_batch main_multi_evo_batch.cpp ${SOURCE_FILES} GroupedEvoGame.hpp)
 target_include_directories(main_multi_evo_batch PRIVATE ${PROJECT_SOURCE_DIR}/caravan-lib)
-target_link_libraries(main_multi_evo_batch PRIVATE Eigen3::Eigen lapacke MPI::MPI_CXX)
+target_link_libraries(main_multi_evo_batch PRIVATE Eigen3::Eigen lapacke MPI::MPI_CXX nlohmann_json::nlohmann_json)
 
 add_executable(main_calc_fractions main_calc_fractions.cpp ${SOURCE_FILES})
 target_link_libraries(main_calc_fractions PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
@@ -44,9 +46,9 @@ add_executable(main_lifetime_distribution main_lifetime_distribution.cpp ${SOURC
 target_link_libraries(main_lifetime_distribution PRIVATE Eigen3::Eigen lapacke OpenMP::OpenMP_CXX)
 
 add_executable(test_GroupedEvoGameLowMutation test_GroupedEvoGameLowMutation.cpp ${SOURCE_FILES})
-target_link_libraries(test_GroupedEvoGameLowMutation PRIVATE Eigen3::Eigen lapacke)
+target_link_libraries(test_GroupedEvoGameLowMutation PRIVATE Eigen3::Eigen lapacke nlohmann_json::nlohmann_json)
 
 add_executable(main_multi_evo_low_mut main_multi_evo_low_mut.cpp ${SOURCE_FILES})
-target_link_libraries(main_multi_evo_low_mut PRIVATE Eigen3::Eigen lapacke)
+target_link_libraries(main_multi_evo_low_mut PRIVATE Eigen3::Eigen lapacke nlohmann_json::nlohmann_json)
 
 add_executable(find_shorter_memory_FR find_shorter_memory_FR.cpp)

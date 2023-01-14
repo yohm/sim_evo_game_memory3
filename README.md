@@ -16,6 +16,7 @@ On macOS,
 brew install cmake
 brew install lapack
 brew install eigen3
+brew install nlohmann-json
 brew install libomp
 brew install openmpi
 ```

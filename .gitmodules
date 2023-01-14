@@ -1,12 +1,6 @@
-[submodule "json"]
-	path = json
-	url = git@github.com:nlohmann/json.git
 [submodule "icecream-cpp"]
 	path = icecream-cpp
 	url = git@github.com:renatoGarcia/icecream-cpp.git
-[submodule "eigen"]
-	path = eigen
-	url = https://gitlab.com/libeigen/eigen.git
 [submodule "caravan-lib"]
 	path = caravan-lib
 	url = https://github.com/yohm/caravan-lib.git
