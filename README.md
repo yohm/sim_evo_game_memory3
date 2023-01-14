@@ -10,7 +10,7 @@ This is the source code repository for the paper [TBA].
 - OpenMP
 - MPI
 
-On macOS,
+On macOS, install the libraries using homebrew as follows.
 
 ```shell
 brew install cmake
@@ -31,6 +31,8 @@ cmake ..
 make
 ```
 
+You can find the usage of each executable in the `CMakelists.txt` file.
+
 ## Execution
 
 Run the shell script in `script_low_mut` or `script_multievo` for the simulations in well-mixed and group-structured populations, respectively.
@@ -47,7 +49,7 @@ With `_input.json` in the current directory, run the script as follows:
 
 ## On Fugaku
 
-A build script for Fugaku:
+A build script for Fugaku is the following. Change the path to the Eigen library appropriately.
 
 ```shell
 #!/bin/bash -eux
@@ -91,5 +93,4 @@ A sample of `_input_batch.json` is as follows:
   "number_of_runs": 100,
   "_seed": 1234567890
 }
-```
 ```
